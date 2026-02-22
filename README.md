@@ -248,7 +248,7 @@ composer dump-autoload
 
 ## 📝 Lisensi
 
-Hak cipta © 2025–2026 Yayasan Pendidikan Kristen. Seluruh hak dilindungi.
+Hak cipta © 2025–2026 Yayasan Pendidikan. Seluruh hak dilindungi.
 
 ---
 
