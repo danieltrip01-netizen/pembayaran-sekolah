@@ -40,28 +40,28 @@ class SiswaTemplateExport implements
     {
         return [
             [
-                'Budi Santoso',  // nama
-                'I',             // kelas (A/B untuk TK | I–VI untuk SD | VII–IX untuk SMP)
-                'SD',            // jenjang: TK / SD / SMP
-                175000,          // nominal_pembayaran: SPP per bulan
-                60000,           // nominal_donator: keringanan (0 jika tidak ada)
-                0,               // nominal_mamin: hanya untuk TK, isi 0 untuk SD/SMP
+                'Budi Santoso',   // nama
+                'I',              // kelas: KB/A/B (TK) | I–VI (SD) | VII–IX (SMP)
+                'SD',             // jenjang: TK / SD / SMP
+                175000,           // nominal_pembayaran (SPP per bulan)
+                60000,            // nominal_donator (keringanan, 0 jika tidak ada)
+                0,                // nominal_mamin (hanya untuk TK, isi 0 untuk SD/SMP)
             ],
             [
                 'Sari Dewi',
-                'A',
+                'KB',             // ✅ contoh kelas KB untuk TK
                 'TK',
                 200000,
                 0,
                 50000,
             ],
             [
-                'Contoh Siswa Tiga',
-                'II',
-                'SD',
-                175000,
-                60000,
+                'Andi Pratama',
+                'A',              // contoh kelas A untuk TK
+                'TK',
+                200000,
                 0,
+                50000,
             ],
         ];
     }
@@ -86,6 +86,7 @@ class SiswaTemplateExport implements
             ],
             2 => ['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFFF9C4']]],
             3 => ['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFCE4EC']]],
+            4 => ['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF3E5F5']]],
         ];
     }
 

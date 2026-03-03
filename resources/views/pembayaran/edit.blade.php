@@ -14,8 +14,12 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold mb-0" style="color: var(--primary)">Edit Pembayaran</h4>
-        <p class="text-muted small mb-0"><code>{{ $pembayaran->kode_bayar }}</code></p>
+        <h4 class="fw-bold mb-1" style="color: var(--navy); font-family:'Sora',sans-serif;">
+            Edit Pembayaran
+        </h4>
+        <p class="mb-0" style="color:var(--ink-muted);font-size:.85rem;">
+            <code style="color:var(--navy);font-size:.8rem;">{{ $pembayaran->kode_bayar }}</code>
+        </p>
     </div>
     <a href="{{ route('pembayaran.show', $pembayaran) }}" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left me-1"></i>Kembali
@@ -27,62 +31,70 @@
 
     {{-- Info pembayaran (readonly) --}}
     <div class="card mb-3">
-        <div class="card-header bg-white py-3">
-            <h6 class="mb-0 fw-bold" style="color:var(--primary)">
+        <div class="card-header">
+            <h6 class="mb-0 fw-bold" style="color:var(--navy);">
                 <i class="bi bi-info-circle me-2"></i>Informasi Pembayaran
             </h6>
         </div>
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-6">
-                    <div class="text-muted small">Siswa</div>
-                    <div class="fw-bold">{{ $pembayaran->siswa->nama ?? '-' }}</div>
-                    <div class="text-muted small">
-                        {{ $pembayaran->siswa->jenjang ?? '' }} Kelas {{ $pembayaran->siswa->kelas ?? '' }}
+                    <div style="color:var(--ink-muted);font-size:.78rem;font-weight:600;
+                                text-transform:uppercase;letter-spacing:.5px;">Siswa</div>
+                    <div class="fw-600 mt-1" style="color:var(--ink);">
+                        {{ $pembayaran->siswa->nama ?? '—' }}
+                    </div>
+                    <div style="color:var(--ink-muted);font-size:.8rem;">
+                        {{ $pembayaran->siswa->jenjang ?? '' }}
+                        Kelas {{ $pembayaran->siswa->kelas ?? '' }}
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="text-muted small">Bulan Dibayar</div>
-                    <div class="fw-600">{{ $pembayaran->bulan_label }}</div>
-                    <div class="text-muted small">{{ $pembayaran->jumlah_bulan }} bulan</div>
+                    <div style="color:var(--ink-muted);font-size:.78rem;font-weight:600;
+                                text-transform:uppercase;letter-spacing:.5px;">Bulan Dibayar</div>
+                    <div class="fw-600 mt-1" style="color:var(--ink);">{{ $pembayaran->bulan_label }}</div>
+                    <div style="color:var(--ink-muted);font-size:.8rem;">
+                        {{ $pembayaran->jumlah_bulan }} bulan
+                    </div>
                 </div>
             </div>
 
-            {{-- Rincian biaya dengan rumus --}}
-            <div class="rounded-3 p-3 mt-3" style="background:#f8fafc;border:1px solid #e2e8f0">
-                <div class="d-flex flex-wrap gap-3 small align-items-center">
+            {{-- Rincian biaya --}}
+            <div class="rounded-3 p-3 mt-3"
+                 style="background:var(--bg);border:1px solid var(--border);">
+                <div class="d-flex flex-wrap gap-3 align-items-center" style="font-size:.85rem;">
                     <div>
-                        <span class="text-muted">SPP</span>
-                        <div class="fw-bold text-primary">
+                        <span style="color:var(--ink-muted);">SPP</span>
+                        <div class="fw-600" style="color:var(--navy);">
                             Rp {{ number_format($pembayaran->nominal_per_bulan, 0, ',', '.') }}/bln
                             × {{ $pembayaran->jumlah_bulan }}
                         </div>
                     </div>
-                    <span class="text-danger fw-bold">−</span>
+                    <span class="fw-bold" style="color:var(--red);">−</span>
                     <div>
-                        <span class="text-muted">Donatur</span>
-                        <div class="fw-bold text-danger" id="previewDonatur">
+                        <span style="color:var(--ink-muted);">Donatur</span>
+                        <div class="fw-600" style="color:var(--red);" id="previewDonatur">
                             Rp {{ number_format($pembayaran->nominal_donator / max($pembayaran->jumlah_bulan,1), 0, ',', '.') }}/bln
                         </div>
                     </div>
                     @if($pembayaran->nominal_mamin > 0)
-                    <span class="text-success fw-bold">+</span>
+                    <span class="fw-bold" style="color:var(--green);">+</span>
                     <div>
-                        <span class="text-muted">Mamin</span>
-                        <div class="fw-bold text-info">
+                        <span style="color:var(--ink-muted);">Mamin</span>
+                        <div class="fw-600" style="color:#0369a1;">
                             Rp {{ number_format($pembayaran->nominal_mamin / max($pembayaran->jumlah_bulan,1), 0, ',', '.') }}/bln
                         </div>
                     </div>
                     @endif
-                    <span class="text-muted fw-bold">=</span>
+                    <span class="fw-bold" style="color:var(--ink-muted);">=</span>
                     <div>
-                        <span class="text-muted">Total</span>
-                        <div class="fw-bold text-success fs-6" id="previewTotal">
+                        <span style="color:var(--ink-muted);">Total</span>
+                        <div class="fw-bold" style="color:var(--green);font-size:1rem;" id="previewTotal">
                             Rp {{ number_format($pembayaran->total_bayar, 0, ',', '.') }}
                         </div>
                     </div>
                 </div>
-                <div class="mt-2" style="font-size:.72rem;color:#64748b">
+                <div class="mt-2" style="font-size:.72rem;color:var(--ink-muted);">
                     <i class="bi bi-info-circle me-1"></i>
                     Rumus: (SPP − Donatur + Mamin) × {{ $pembayaran->jumlah_bulan }} bulan
                 </div>
@@ -92,8 +104,11 @@
 
     {{-- Form edit --}}
     <div class="card mb-4">
-        <div class="card-header py-3" style="background:var(--primary);color:white">
-            <h6 class="mb-0 fw-bold"><i class="bi bi-pencil me-2"></i>Edit Data</h6>
+        <div class="card-header"
+             style="background: var(--navy); border-radius: var(--r-xl) var(--r-xl) 0 0 !important;">
+            <h6 class="mb-0 fw-bold" style="color:#fff;">
+                <i class="bi bi-pencil me-2"></i>Edit Data
+            </h6>
         </div>
         <div class="card-body">
 
@@ -102,7 +117,7 @@
             @method('PUT')
 
                 <div class="mb-3">
-                    <label class="form-label fw-600">Tanggal Bayar <span class="text-danger">*</span></label>
+                    <label class="form-label">Tanggal Bayar <span class="text-danger">*</span></label>
                     <input type="date" name="tanggal_bayar"
                            value="{{ old('tanggal_bayar', $pembayaran->tanggal_bayar->format('Y-m-d')) }}"
                            class="form-control @error('tanggal_bayar') is-invalid @enderror" required>
@@ -110,9 +125,9 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-600">
+                    <label class="form-label">
                         Donatur / Bulan
-                        <small class="text-muted">(akan dihitung ulang)</small>
+                        <small style="color:var(--ink-muted);font-weight:400;">(akan dihitung ulang)</small>
                     </label>
                     <div class="input-group">
                         <span class="input-group-text">Rp</span>
@@ -120,40 +135,52 @@
                                value="{{ old('nominal_donator', (int) ($pembayaran->nominal_donator / max($pembayaran->jumlah_bulan, 1))) }}"
                                class="form-control @error('nominal_donator') is-invalid @enderror"
                                min="0" step="1000">
-                        <span class="input-group-text text-muted small">/bln</span>
+                        <span class="input-group-text" style="color:var(--ink-muted);font-size:.82rem;">/bln</span>
                     </div>
                     @error('nominal_donator')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
                 {{-- Preview total baru --}}
-                <div class="rounded-3 p-3 mb-4" style="background:#f0fdf4;border:1px solid #bbf7d0">
-                    <div class="d-flex justify-content-between small mb-1">
-                        <span class="text-muted">
+                <div class="rounded-3 p-3 mb-4"
+                     style="background:#f0fdf4;border:1px solid #bbf7d0;">
+                    <div class="d-flex justify-content-between mb-1" style="font-size:.85rem;">
+                        <span style="color:var(--ink-muted);">
                             SPP ({{ $pembayaran->jumlah_bulan }} bln):
                         </span>
-                        <strong>Rp {{ number_format($pembayaran->nominal_per_bulan * $pembayaran->jumlah_bulan, 0, ',', '.') }}</strong>
+                        <strong style="color:var(--ink-soft);">
+                            Rp {{ number_format($pembayaran->nominal_per_bulan * $pembayaran->jumlah_bulan, 0, ',', '.') }}
+                        </strong>
                     </div>
-                    <div class="d-flex justify-content-between small mb-1 text-danger">
-                        <span>Donatur (<span id="lblDonaturBln">{{ (int)($pembayaran->nominal_donator / max($pembayaran->jumlah_bulan,1)) }}</span>/bln × {{ $pembayaran->jumlah_bulan }}):</span>
-                        <strong id="previewDonaturTotal">− Rp {{ number_format($pembayaran->nominal_donator, 0, ',', '.') }}</strong>
+                    <div class="d-flex justify-content-between mb-1" style="font-size:.85rem;color:var(--red);">
+                        <span>
+                            Donatur (<span id="lblDonaturBln">{{ (int)($pembayaran->nominal_donator / max($pembayaran->jumlah_bulan,1)) }}</span>/bln
+                            × {{ $pembayaran->jumlah_bulan }}):
+                        </span>
+                        <strong id="previewDonaturTotal">
+                            −Rp {{ number_format($pembayaran->nominal_donator, 0, ',', '.') }}
+                        </strong>
                     </div>
                     @if($pembayaran->nominal_mamin > 0)
-                    <div class="d-flex justify-content-between small mb-1 text-info">
+                    <div class="d-flex justify-content-between mb-1" style="font-size:.85rem;color:#0369a1;">
                         <span>Mamin ({{ $pembayaran->jumlah_bulan }} bln):</span>
-                        <strong>+ Rp {{ number_format($pembayaran->nominal_mamin, 0, ',', '.') }}</strong>
+                        <strong>
+                            +Rp {{ number_format($pembayaran->nominal_mamin, 0, ',', '.') }}
+                        </strong>
                     </div>
                     @endif
-                    <hr class="my-2">
+                    <hr class="my-2" style="border-color:var(--border);">
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-bold small">Total Baru:</span>
-                        <strong class="text-success" style="font-size:1.05rem" id="previewTotalLive">
+                        <span class="fw-bold" style="font-size:.85rem;color:var(--ink-soft);">
+                            Total Baru:
+                        </span>
+                        <strong style="color:var(--green);font-size:1.05rem;" id="previewTotalLive">
                             Rp {{ number_format($pembayaran->total_bayar, 0, ',', '.') }}
                         </strong>
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label fw-600">Keterangan</label>
+                    <label class="form-label">Keterangan</label>
                     <textarea name="keterangan" class="form-control" rows="2"
                               placeholder="Catatan (opsional)">{{ old('keterangan', $pembayaran->keterangan) }}</textarea>
                 </div>
@@ -177,25 +204,19 @@
 
 @push('scripts')
 <script>
-// Nilai dari server (sudah per bulan atau total sesuai konteks)
 const sppPerBulan   = {{ $pembayaran->nominal_per_bulan }};
 const jumlahBulan   = {{ $pembayaran->jumlah_bulan }};
-// nominal_mamin di DB tersimpan sebagai total (mamin × bulan)
 const maminPerBulan = {{ $pembayaran->jumlah_bulan > 0 ? $pembayaran->nominal_mamin / $pembayaran->jumlah_bulan : 0 }};
 
 document.getElementById('inputDonatur').addEventListener('input', function () {
     const donaturPerBulan = parseFloat(this.value) || 0;
     const donaturTotal    = donaturPerBulan * jumlahBulan;
-    const maminTotal      = maminPerBulan * jumlahBulan;
-    const sppTotal        = sppPerBulan * jumlahBulan;
-
-    // ✅ RUMUS BENAR: (SPP - Donatur + Mamin) × jumlah_bulan
     const total = (sppPerBulan - donaturPerBulan + maminPerBulan) * jumlahBulan;
 
     const fmt = n => new Intl.NumberFormat('id-ID').format(Math.round(n));
 
     document.getElementById('lblDonaturBln').textContent       = fmt(donaturPerBulan);
-    document.getElementById('previewDonaturTotal').textContent = '− Rp ' + fmt(donaturTotal);
+    document.getElementById('previewDonaturTotal').textContent = '−Rp ' + fmt(donaturTotal);
     document.getElementById('previewTotalLive').textContent    = 'Rp ' + fmt(total);
 });
 </script>

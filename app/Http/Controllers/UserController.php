@@ -78,4 +78,37 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')
                          ->with('success', 'User berhasil dihapus.');
     }
+    // ── Show ─────────────────────────────────────────────────────────
+
+    public function show(User $user)
+    {
+        // Total pembayaran yang dibuat user ini
+        $totalPembayaran = \App\Models\Pembayaran::where('user_id', $user->id)->count();
+
+        // Total setoran yang dibuat user ini (jika ada model Setoran)
+        $totalSetoran = class_exists(\App\Models\Setoran::class)
+            ? \App\Models\Setoran::where('user_id', $user->id)->count()
+            : 0;
+
+        // Transaksi bulan ini
+        $bulanIni = \App\Models\Pembayaran::where('user_id', $user->id)
+            ->whereYear('tanggal_bayar',  now()->year)
+            ->whereMonth('tanggal_bayar', now()->month)
+            ->count();
+
+        // 5 pembayaran terakhir
+        $recentPembayaran = \App\Models\Pembayaran::where('user_id', $user->id)
+            ->with('siswa')
+            ->orderByDesc('tanggal_bayar')
+            ->limit(5)
+            ->get();
+
+        return view('admin.users.show', compact(
+            'user',
+            'totalPembayaran',
+            'totalSetoran',
+            'bulanIni',
+            'recentPembayaran'
+        ));
+    }
 }

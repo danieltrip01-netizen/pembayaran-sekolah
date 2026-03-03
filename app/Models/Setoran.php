@@ -31,6 +31,7 @@ class Setoran extends Model
     ];
 
     // Relasi
+
     public function pembayaran()
     {
         return $this->hasMany(Pembayaran::class);

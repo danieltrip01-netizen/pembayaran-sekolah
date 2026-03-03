@@ -258,15 +258,6 @@
                         <div class="text-center" style="width:45%">
                             <p class="mb-0">Mengetahui,</p>
                             <p class="mb-0">Kepala Sekolah {{ $jenjang }}</p>
-                            <div style="height:40px"></div>
-                            <div style="border-top:1px solid #ccc;padding-top:2px">
-                                <strong id="previewKepala">
-                                    {{ $setting->nama_kepala_sekolah ?: '( Nama Kepala Sekolah )' }}
-                                </strong>
-                            </div>
-                        </div>
-                        <div class="text-center" style="width:45%">
-                            <p class="mb-0">Bendahara,</p>
                             @if($setting->tanda_tangan_url)
                                 <img src="{{ $setting->tanda_tangan_url }}" height="40"
                                      id="previewTtdImg" alt="TTD" style="margin:2px 0">
@@ -277,6 +268,16 @@
                                     <i class="bi bi-pen text-muted" style="font-size:.7rem"></i>
                                 </div>
                             @endif
+                            
+                            <div style="border-top:1px solid #ccc;padding-top:2px">
+                                <strong id="previewKepala">
+                                    {{ $setting->nama_kepala_sekolah ?: '( Nama Kepala Sekolah )' }}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="text-center" style="width:45%">
+                            <p class="mb-0">Bendahara,</p>
+                            <div style="height:50px"></div>
                             <div style="border-top:1px solid #ccc;padding-top:2px">
                                 <strong id="previewAdmin">
                                     {{ $setting->nama_admin ?: '( Nama Admin )' }}

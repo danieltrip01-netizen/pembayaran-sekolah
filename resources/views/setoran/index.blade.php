@@ -10,8 +10,8 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold mb-0" style="color: var(--primary)">Data Setoran</h4>
-        <p class="text-muted small mb-0">Rekap pembayaran yang sudah disetor</p>
+        <h4 class="fw-bold mb-1" style="font-family:'Sora',sans-serif;color:var(--ink)">Data Setoran</h4>
+        <p class="mb-0" style="color:var(--ink-muted);font-size:.85rem">Rekap pembayaran yang sudah disetor</p>
     </div>
     <a href="{{ route('setoran.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i>Buat Setoran
@@ -24,20 +24,20 @@
         <form method="GET" class="row g-2 align-items-end">
 
             <div class="col-md-2">
-                <label class="form-label small fw-600 mb-1">Dari Tanggal</label>
+                <label class="form-label">Dari Tanggal</label>
                 <input type="date" name="tanggal_dari" value="{{ request('tanggal_dari') }}"
                        class="form-control form-control-sm">
             </div>
 
             <div class="col-md-2">
-                <label class="form-label small fw-600 mb-1">Sampai Tanggal</label>
+                <label class="form-label">Sampai Tanggal</label>
                 <input type="date" name="tanggal_sampai" value="{{ request('tanggal_sampai') }}"
                        class="form-control form-control-sm">
             </div>
 
             @if(!auth()->user()->jenjang)
             <div class="col-md-2">
-                <label class="form-label small fw-600 mb-1">Jenjang</label>
+                <label class="form-label">Jenjang</label>
                 <select name="jenjang" class="form-select form-select-sm">
                     <option value="">Semua</option>
                     @foreach(['TK','SD','SMP'] as $j)
@@ -48,7 +48,7 @@
             @endif
 
             <div class="col-md-2">
-                <label class="form-label small fw-600 mb-1">Cari Kode</label>
+                <label class="form-label">Cari Kode</label>
                 <input type="text" name="search" value="{{ request('search') }}"
                        class="form-control form-control-sm" placeholder="Kode setoran...">
             </div>
@@ -66,52 +66,67 @@
     </div>
 </div>
 
-{{-- Summary: gunakan variabel dari controller yang mencakup SEMUA data (bukan hanya halaman ini) --}}
-@php
-    $jumlahSetoran = $setoran->total();
-@endphp
-<div class="row g-2 mb-3">
+{{-- Summary Cards --}}
+@php $jumlahSetoran = $setoran->total(); @endphp
+<div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-        <div class="rounded-3 p-3 text-center" style="background:white;border:1px solid #e2e8f0">
-            <div class="fw-bold fs-4 text-primary">{{ $jumlahSetoran }}</div>
-            <div class="text-muted small">Total Setoran</div>
+        <div class="card text-center" style="border-color:var(--border)">
+            <div class="card-body py-3">
+                <div class="fw-bold mb-1" style="font-size:1.6rem;color:var(--navy);font-family:'Sora',sans-serif">
+                    {{ $jumlahSetoran }}
+                </div>
+                <div style="font-size:.75rem;color:var(--ink-muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase">
+                    Total Setoran
+                </div>
+            </div>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="rounded-3 p-3 text-center" style="background:white;border:1px solid #e2e8f0">
-            <div class="fw-bold text-success" style="font-size:.9rem">
-                Rp {{ number_format($totalNominalAll, 0, ',', '.') }}
+        <div class="card text-center" style="border-color:var(--border)">
+            <div class="card-body py-3">
+                <div class="fw-bold mb-1" style="font-size:.95rem;color:var(--green)">
+                    Rp {{ number_format($totalNominalAll, 0, ',', '.') }}
+                </div>
+                <div style="font-size:.75rem;color:var(--ink-muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase">
+                    Total SPP
+                </div>
             </div>
-            <div class="text-muted small">Total SPP</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="rounded-3 p-3 text-center" style="background:white;border:1px solid #e2e8f0">
-            <div class="fw-bold text-info" style="font-size:.9rem">
-                Rp {{ number_format($totalMaminAll, 0, ',', '.') }}
+        <div class="card text-center" style="border-color:var(--border)">
+            <div class="card-body py-3">
+                <div class="fw-bold mb-1" style="font-size:.95rem;color:#6366f1">
+                    Rp {{ number_format($totalMaminAll, 0, ',', '.') }}
+                </div>
+                <div style="font-size:.75rem;color:var(--ink-muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase">
+                    Total Mamin
+                </div>
             </div>
-            <div class="text-muted small">Total Mamin</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="rounded-3 p-3 text-center"
-             style="background:var(--primary);border:1px solid var(--primary)">
-            <div class="fw-bold text-white" style="font-size:.9rem">
-                Rp {{ number_format($grandTotalAll, 0, ',', '.') }}
+        <div class="card text-center" style="background:var(--navy);border-color:var(--navy)">
+            <div class="card-body py-3">
+                <div class="fw-bold mb-1 text-white" style="font-size:.95rem">
+                    Rp {{ number_format($grandTotalAll, 0, ',', '.') }}
+                </div>
+                <div style="font-size:.75rem;color:rgba(255,255,255,.55);font-weight:600;letter-spacing:.5px;text-transform:uppercase">
+                    Grand Total
+                </div>
             </div>
-            <div class="text-white small" style="opacity:.8">Grand Total</div>
         </div>
     </div>
 </div>
 
-{{-- Tabel Setoran --}}
+{{-- Tabel --}}
 <div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table mb-0">
                 <thead>
                     <tr>
-                        <th style="width:45px">#</th>
+                        <th style="width:45px">No</th>
                         <th>Kode Setoran</th>
                         <th>Tanggal</th>
                         <th>Jenjang</th>
@@ -126,59 +141,53 @@
                 <tbody>
                     @forelse($setoran as $index => $s)
                     <tr>
-                        <td class="text-muted small">{{ $setoran->firstItem() + $index }}</td>
+                        <td style="color:var(--ink-faint);font-size:.82rem">{{ $setoran->firstItem() + $index }}</td>
 
                         <td>
                             <a href="{{ route('setoran.show', $s) }}"
-                               class="fw-bold text-decoration-none text-primary">
+                               class="fw-600 text-decoration-none" style="color:var(--blue)">
                                 {{ $s->kode_setoran }}
                             </a>
                         </td>
 
-                        <td class="small">
+                        <td style="font-size:.85rem;color:var(--ink-soft)">
                             {{ $s->tanggal_setoran->isoFormat('D MMM Y') }}
                         </td>
 
                         <td>
-                            @php
-                                $badgeStyle = match($s->jenjang) {
-                                    'TK'  => 'background:#fce7f3;color:#db2777;border:1px solid #f9a8d4',
-                                    'SD'  => 'background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd',
-                                    'SMP' => 'background:#d1fae5;color:#059669;border:1px solid #6ee7b7',
-                                    default => '',
-                                };
-                            @endphp
-                            <span class="badge rounded-pill" style="{{ $badgeStyle }}">
-                                {{ $s->jenjang }}
-                            </span>
+                            <span class="badge-{{ $s->jenjang }}">{{ $s->jenjang }}</span>
                         </td>
 
                         <td class="text-center">
-                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                                {{ $s->pembayaran_count ?? $s->pembayaran->count() }} transaksi
+                            <span style="display:inline-flex;align-items:center;gap:.3rem;
+                                         font-size:.75rem;font-weight:600;padding:.25rem .65rem;
+                                         border-radius:999px;background:var(--bg);
+                                         color:var(--ink-muted);border:1px solid var(--border)">
+                                <i class="bi bi-receipt" style="font-size:.65rem"></i>
+                                {{ $s->pembayaran_count ?? $s->pembayaran->count() }}
                             </span>
                         </td>
 
-                        <td class="text-end small">
+                        <td class="text-end" style="font-size:.85rem;color:var(--ink-soft)">
                             Rp {{ number_format($s->total_nominal, 0, ',', '.') }}
                         </td>
 
-                        <td class="text-end small text-info">
+                        <td class="text-end" style="font-size:.85rem;color:#6366f1">
                             @if($s->total_mamin > 0)
                                 Rp {{ number_format($s->total_mamin, 0, ',', '.') }}
                             @else
-                                <span class="text-muted">-</span>
+                                <span style="color:var(--ink-faint)">—</span>
                             @endif
                         </td>
 
-                        <td class="text-end fw-bold text-success">
+                        <td class="text-end fw-600" style="color:var(--green)">
                             Rp {{ number_format($s->total_keseluruhan, 0, ',', '.') }}
                         </td>
 
-                        <td class="small">
-                            <div class="fw-600">{{ $s->user->name ?? '-' }}</div>
+                        <td style="font-size:.85rem">
+                            <div class="fw-600" style="color:var(--ink)">{{ $s->user->name ?? '—' }}</div>
                             @if($s->keterangan)
-                                <div class="text-muted" style="font-size:.7rem">
+                                <div style="font-size:.72rem;color:var(--ink-muted)">
                                     {{ Str::limit($s->keterangan, 30) }}
                                 </div>
                             @endif
@@ -208,11 +217,13 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="text-center py-5 text-muted">
-                            <i class="bi bi-wallet2 fs-2 d-block mb-2"></i>
-                            Belum ada data setoran.
-                            <br>
-                            <a href="{{ route('setoran.create') }}" class="btn btn-primary btn-sm mt-2">
+                        <td colspan="10" class="text-center py-5">
+                            <i class="bi bi-wallet2 d-block mb-2" style="font-size:2rem;color:var(--ink-faint)"></i>
+                            <div class="fw-600 mb-1" style="color:var(--ink-soft)">Belum ada data setoran</div>
+                            <div class="mb-3" style="font-size:.85rem;color:var(--ink-muted)">
+                                Mulai buat setoran pertama Anda
+                            </div>
+                            <a href="{{ route('setoran.create') }}" class="btn btn-primary btn-sm">
                                 <i class="bi bi-plus-lg me-1"></i>Buat Setoran Pertama
                             </a>
                         </td>
@@ -220,7 +231,6 @@
                     @endforelse
                 </tbody>
 
-                {{-- Footer Total --}}
                 @if($setoran->count() > 0)
                 @php
                     $pageNominal = $setoran->getCollection()->sum('total_nominal');
@@ -228,15 +238,17 @@
                     $pageTotal   = $setoran->getCollection()->sum('total_keseluruhan');
                 @endphp
                 <tfoot>
-                    <tr class="fw-bold" style="background:#f0f4f8">
-                        <td colspan="5" class="text-end">Total (halaman ini):</td>
-                        <td class="text-end">
+                    <tr class="fw-600" style="background:var(--bg)">
+                        <td colspan="5" class="text-end" style="color:var(--ink-muted);font-size:.82rem">
+                            Total (halaman ini):
+                        </td>
+                        <td class="text-end" style="font-size:.85rem">
                             Rp {{ number_format($pageNominal, 0, ',', '.') }}
                         </td>
-                        <td class="text-end text-info">
+                        <td class="text-end" style="font-size:.85rem;color:#6366f1">
                             Rp {{ number_format($pageMamin, 0, ',', '.') }}
                         </td>
-                        <td class="text-end text-success">
+                        <td class="text-end" style="font-size:.85rem;color:var(--green)">
                             Rp {{ number_format($pageTotal, 0, ',', '.') }}
                         </td>
                         <td colspan="2"></td>
@@ -248,7 +260,7 @@
 
         @if($setoran->hasPages())
         <div class="card-footer bg-white d-flex justify-content-between align-items-center">
-            <div class="text-muted small">
+            <div style="font-size:.82rem;color:var(--ink-muted)">
                 Menampilkan {{ $setoran->firstItem() }}–{{ $setoran->lastItem() }}
                 dari {{ $setoran->total() }} setoran
             </div>

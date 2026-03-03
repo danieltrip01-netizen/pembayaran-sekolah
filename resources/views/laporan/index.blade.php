@@ -19,11 +19,11 @@
     <div class="d-flex gap-2">
         <a href="{{ route('laporan.pdf', array_filter(request()->all())) }}"
            class="btn btn-danger btn-sm" target="_blank">
-            <i class="bi bi-file-pdf me-1"></i>Export PDF
+            <i class="bi bi-file-pdf me-1"></i>Download PDF
         </a>
         <a href="{{ route('laporan.excel', array_filter(request()->all())) }}"
            class="btn btn-success btn-sm">
-            <i class="bi bi-file-excel me-1"></i>Export Excel
+            <i class="bi bi-file-excel me-1"></i>Download Excel
         </a>
     </div>
 </div>
@@ -276,7 +276,7 @@
         <table class="table mb-0" style="font-size:.82rem">
             <thead>
                 <tr>
-                    <th style="width:32px">#</th>
+                    <th style="width:32px">No</th>
                     <th>Tanggal</th>
                     <th>Siswa</th>
                     <th>Kelas</th>

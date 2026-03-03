@@ -11,41 +11,49 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold mb-0" style="color: var(--primary)">Buat Setoran</h4>
-        <p class="text-muted small mb-0">Rekap pembayaran untuk disetor</p>
+        <h4 class="fw-bold mb-1" style="font-family:'Sora',sans-serif;color:var(--ink)">Buat Setoran</h4>
+        <p class="mb-0" style="color:var(--ink-muted);font-size:.85rem">Rekap pembayaran untuk disetor</p>
     </div>
     <a href="{{ route('setoran.index') }}" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left me-1"></i>Kembali
     </a>
 </div>
 
-{{-- ✅ FIX: Tampilkan pilihan jenjang untuk admin yayasan --}}
+{{-- Pilihan Jenjang untuk admin yayasan --}}
 @if($pilihJenjang)
 <div class="card mb-4">
-    <div class="card-header py-3" style="background:var(--primary);color:white">
-        <h6 class="mb-0 fw-bold">
+    <div class="card-header py-3" style="background:var(--navy)">
+        <h6 class="mb-0 fw-bold text-white">
             <i class="bi bi-funnel me-2"></i>Pilih Jenjang Setoran
         </h6>
     </div>
     <div class="card-body">
-        <p class="text-muted small mb-3">
+        <p class="mb-3" style="font-size:.85rem;color:var(--ink-muted)">
             Pilih jenjang untuk menampilkan daftar pembayaran yang belum disetor.
         </p>
         <div class="row g-3">
-            @foreach(['TK' => ['icon'=>'bi-flower1','color'=>'#db2777','bg'=>'#fce7f3','border'=>'#f9a8d4'],
-                      'SD' => ['icon'=>'bi-book','color'=>'#1d4ed8','bg'=>'#dbeafe','border'=>'#93c5fd'],
-                      'SMP'=> ['icon'=>'bi-mortarboard','color'=>'#059669','bg'=>'#d1fae5','border'=>'#6ee7b7']] as $j => $style)
+            @foreach([
+                'TK'  => ['icon'=>'bi-flower1',    'color'=>'#B45309','bg'=>'var(--yellow-pale)','border'=>'#FDE68A','active_border'=>'#F59E0B'],
+                'SD'  => ['icon'=>'bi-book',        'color'=>'var(--blue-dark)','bg'=>'var(--blue-pale)','border'=>'var(--blue-light)','active_border'=>'var(--blue)'],
+                'SMP' => ['icon'=>'bi-mortarboard', 'color'=>'#065F46','bg'=>'var(--green-pale)','border'=>'#6EE7B7','active_border'=>'var(--green)'],
+            ] as $j => $style)
             <div class="col-md-4">
-                <a href="{{ route('setoran.create', ['jenjang' => $j]) }}"
-                   class="text-decoration-none">
-                    <div class="rounded-3 p-4 text-center h-100 {{ $jenjang === $j ? 'shadow' : '' }}"
-                         style="background:{{ $style['bg'] }};border:2px solid {{ $jenjang === $j ? $style['color'] : $style['border'] }};
-                                transition:.2s;cursor:pointer">
-                        <i class="bi {{ $style['icon'] }} fs-2 mb-2 d-block" style="color:{{ $style['color'] }}"></i>
-                        <div class="fw-bold" style="color:{{ $style['color'] }}">{{ $j }}</div>
+                <a href="{{ route('setoran.create', ['jenjang' => $j]) }}" class="text-decoration-none">
+                    <div class="rounded-3 p-4 text-center h-100"
+                         style="background:{{ $style['bg'] }};
+                                border:2px solid {{ $jenjang === $j ? $style['active_border'] : $style['border'] }};
+                                transition:.2s;cursor:pointer;
+                                {{ $jenjang === $j ? 'box-shadow:0 4px 16px rgba(0,0,0,.08)' : '' }}">
+                        <i class="bi {{ $style['icon'] }} d-block mb-2"
+                           style="font-size:1.75rem;color:{{ $style['color'] }}"></i>
+                        <div class="fw-bold" style="color:{{ $style['color'] }};font-family:'Sora',sans-serif">
+                            {{ $j }}
+                        </div>
                         @if($jenjang === $j)
-                            <span class="badge mt-1" style="background:{{ $style['color'] }};color:white">
-                                <i class="bi bi-check me-1"></i>Dipilih
+                            <span class="mt-2 d-inline-flex align-items-center gap-1"
+                                  style="font-size:.72rem;font-weight:600;padding:.2rem .6rem;
+                                         border-radius:999px;background:{{ $style['active_border'] }};color:white">
+                                <i class="bi bi-check2"></i>Dipilih
                             </span>
                         @endif
                     </div>
@@ -57,17 +65,7 @@
 </div>
 @endif
 
-{{-- Tampilkan form setoran hanya jika jenjang sudah dipilih --}}
 @if($jenjang)
-
-@php
-    $jStyle = match($jenjang) {
-        'TK'  => ['color'=>'#db2777','bg'=>'#fce7f3','border'=>'#f9a8d4'],
-        'SD'  => ['color'=>'#1d4ed8','bg'=>'#dbeafe','border'=>'#93c5fd'],
-        'SMP' => ['color'=>'#059669','bg'=>'#d1fae5','border'=>'#6ee7b7'],
-        default => ['color'=>'#64748b','bg'=>'#f1f5f9','border'=>'#e2e8f0'],
-    };
-@endphp
 
 <form method="POST" action="{{ route('setoran.store') }}" id="formSetoran">
 @csrf
@@ -78,13 +76,12 @@
     {{-- ═══ KIRI: Tabel Pembayaran ═══════════════════════════════ --}}
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-bold">
-                    <i class="bi bi-list-check me-2" style="color:var(--primary)"></i>
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center"
+                 style="border-bottom:1px solid var(--border)">
+                <h6 class="mb-0 fw-bold" style="color:var(--ink)">
+                    <i class="bi bi-list-check me-2" style="color:var(--blue)"></i>
                     Pembayaran Belum Disetor
-                    <span class="badge ms-2 rounded-pill" style="background:{{ $jStyle['bg'] }};color:{{ $jStyle['color'] }};border:1px solid {{ $jStyle['border'] }}">
-                        {{ $jenjang }}
-                    </span>
+                    <span class="badge-{{ $jenjang }} ms-1">{{ $jenjang }}</span>
                 </h6>
                 <div class="d-flex gap-1">
                     <button type="button" class="btn btn-sm btn-outline-primary" id="btnCeklisSemua">
@@ -95,26 +92,32 @@
                     </button>
                 </div>
             </div>
+
             <div class="card-body p-0">
 
                 @if($pembayaranBelumSetor->isEmpty())
-                <div class="text-center py-5 text-muted">
-                    <i class="bi bi-check-circle fs-2 d-block text-success mb-2"></i>
-                    <div class="fw-600 mb-1">Semua pembayaran {{ $jenjang }} sudah disetor</div>
-                    <div class="small">Tidak ada pembayaran yang perlu disetorkan.</div>
+                <div class="text-center py-5">
+                    <i class="bi bi-check-circle d-block mb-2" style="font-size:2rem;color:var(--green)"></i>
+                    <div class="fw-600 mb-1" style="color:var(--ink-soft)">
+                        Semua pembayaran {{ $jenjang }} sudah disetor
+                    </div>
+                    <div style="font-size:.85rem;color:var(--ink-muted)">
+                        Tidak ada pembayaran yang perlu disetorkan.
+                    </div>
                 </div>
                 @else
 
-                {{-- Filter & Info --}}
-                <div class="px-3 py-2 border-bottom" style="background:#f8fafc">
-                    <div class="d-flex align-items-center gap-3 flex-wrap small text-muted">
+                {{-- Info bar --}}
+                <div class="px-3 py-2" style="background:var(--bg);border-bottom:1px solid var(--border)">
+                    <div class="d-flex align-items-center gap-3 flex-wrap" style="font-size:.82rem;color:var(--ink-muted)">
                         <span>
                             <i class="bi bi-receipt me-1"></i>
-                            <strong class="text-dark">{{ $pembayaranBelumSetor->count() }}</strong> pembayaran menunggu setoran
+                            <strong style="color:var(--ink)">{{ $pembayaranBelumSetor->count() }}</strong>
+                            pembayaran menunggu setoran
                         </span>
                         <span>
                             <i class="bi bi-cash me-1"></i>
-                            Total: <strong class="text-success">
+                            Total: <strong style="color:var(--green)">
                                 Rp {{ number_format($pembayaranBelumSetor->sum('total_bayar'), 0, ',', '.') }}
                             </strong>
                         </span>
@@ -126,8 +129,7 @@
                         <thead>
                             <tr>
                                 <th style="width:40px">
-                                    <input type="checkbox" id="checkAll" class="form-check-input"
-                                           title="Pilih semua">
+                                    <input type="checkbox" id="checkAll" class="form-check-input" title="Pilih semua">
                                 </th>
                                 <th>Tanggal</th>
                                 <th>Nama Siswa</th>
@@ -152,41 +154,46 @@
                                            value="{{ $p->id }}"
                                            class="form-check-input chk-bayar">
                                 </td>
-                                <td class="small text-muted">
+                                <td style="font-size:.82rem;color:var(--ink-muted)">
                                     {{ $p->tanggal_bayar->format('d/m/Y') }}
                                 </td>
                                 <td>
-                                    <div class="fw-600 small">{{ $p->siswa->nama ?? '-' }}</div>
-                                    <div class="text-muted" style="font-size:.7rem">
+                                    <div class="fw-600" style="font-size:.85rem;color:var(--ink)">
+                                        {{ $p->siswa->nama ?? '—' }}
+                                    </div>
+                                    <div style="font-size:.72rem;color:var(--ink-faint)">
                                         {{ $p->kode_bayar }}
                                     </div>
                                 </td>
-                                <td class="small">{{ $p->siswa->kelas ?? '-' }}</td>
-                                <td class="small">
+                                <td style="font-size:.85rem;color:var(--ink-soft)">{{ $p->siswa->kelas ?? '—' }}</td>
+                                <td style="font-size:.85rem;color:var(--ink-soft)">
                                     <span title="{{ $p->bulan_label }}">
                                         @php $bulanArr = $p->bulan_bayar ?? []; @endphp
                                         @if(count($bulanArr) > 2)
                                             {{ \Carbon\Carbon::createFromFormat('Y-m', $bulanArr[0])->isoFormat('MMM YY') }}
-                                            <span class="badge bg-secondary-subtle text-secondary">+{{ count($bulanArr)-1 }}</span>
+                                            <span style="display:inline-flex;align-items:center;font-size:.68rem;
+                                                         font-weight:600;padding:.15rem .45rem;border-radius:999px;
+                                                         background:var(--bg);color:var(--ink-muted);border:1px solid var(--border)">
+                                                +{{ count($bulanArr)-1 }}
+                                            </span>
                                         @else
                                             {{ $p->bulan_label }}
                                         @endif
                                     </span>
-                                    <div class="text-muted" style="font-size:.7rem">{{ $p->jumlah_bulan }} bulan</div>
                                 </td>
-                                <td class="text-end small">
-                                    Rp {{ number_format($p->nominal_per_bulan * $p->jumlah_bulan + $p->nominal_donator, 0, ',', '.') }}
+                                <td class="text-end" style="font-size:.85rem;color:var(--ink-soft)">
+                                    Rp {{ number_format($p->nominal_per_bulan * $p->jumlah_bulan - $p->nominal_donator, 0, ',', '.') }}
                                 </td>
                                 @if($jenjang === 'TK')
-                                <td class="text-end small" style="color:#6366f1">
+                                <td class="text-end" style="font-size:.85rem;color:#6366f1">
                                     @if($p->nominal_mamin > 0)
                                         Rp {{ number_format($p->nominal_mamin, 0, ',', '.') }}
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span style="color:var(--ink-faint)">—</span>
                                     @endif
                                 </td>
                                 @endif
-                                <td class="text-end fw-bold text-success small">
+                                <td class="text-end fw-bold" style="font-size:.85rem;color:var(--green)">
                                     Rp {{ number_format($p->total_bayar, 0, ',', '.') }}
                                 </td>
                             </tr>
@@ -204,15 +211,15 @@
     {{-- ═══ KANAN: Rekap & Simpan ══════════════════════════════════ --}}
     <div class="col-md-4">
         <div class="card sticky-top" style="top:80px">
-            <div class="card-header py-3" style="background: var(--primary); color:white">
-                <h6 class="mb-0 fw-bold">
+            <div class="card-header py-3" style="background:var(--navy)">
+                <h6 class="mb-0 fw-bold text-white">
                     <i class="bi bi-calculator me-2"></i>Rekap Setoran
                 </h6>
             </div>
             <div class="card-body">
 
                 <div class="mb-3">
-                    <label class="form-label fw-600 small">
+                    <label class="form-label">
                         Tanggal Setoran <span class="text-danger">*</span>
                     </label>
                     <input type="date" name="tanggal_setoran" class="form-control"
@@ -220,32 +227,34 @@
                 </div>
 
                 {{-- Ringkasan --}}
-                <div class="rounded-3 p-3 mb-3" style="background:#f8fafc;border:1px solid #e2e8f0">
-                    <div class="d-flex justify-content-between small mb-2">
-                        <span class="text-muted">Dipilih</span>
-                        <strong><span id="jmlDipilih">0</span> pembayaran</strong>
+                <div class="rounded-3 p-3 mb-3" style="background:var(--bg);border:1px solid var(--border)">
+                    <div class="d-flex justify-content-between mb-2" style="font-size:.85rem">
+                        <span style="color:var(--ink-muted)">Dipilih</span>
+                        <strong style="color:var(--ink)">
+                            <span id="jmlDipilih">0</span> pembayaran
+                        </strong>
                     </div>
-                    <div class="d-flex justify-content-between small mb-2">
-                        <span class="text-muted">Total SPP</span>
-                        <strong id="totalSPP">Rp 0</strong>
+                    <div class="d-flex justify-content-between mb-2" style="font-size:.85rem">
+                        <span style="color:var(--ink-muted)">Total SPP</span>
+                        <strong id="totalSPP" style="color:var(--ink)">Rp 0</strong>
                     </div>
                     @if($jenjang === 'TK')
-                    <div class="d-flex justify-content-between small mb-2">
-                        <span class="text-muted">Total Mamin</span>
+                    <div class="d-flex justify-content-between mb-2" style="font-size:.85rem">
+                        <span style="color:var(--ink-muted)">Total Mamin</span>
                         <strong style="color:#6366f1"><span id="totalMamin">Rp 0</span></strong>
                     </div>
                     @endif
-                    <hr class="my-2">
-                    <div class="d-flex justify-content-between">
-                        <span class="fw-bold small">TOTAL</span>
-                        <strong class="text-primary" style="font-size:1.1rem">
+                    <div style="height:1px;background:var(--border);margin:.6rem 0"></div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold" style="font-size:.85rem;color:var(--ink-soft)">TOTAL</span>
+                        <strong style="font-size:1.1rem;color:var(--navy)">
                             <span id="totalSemua">Rp 0</span>
                         </strong>
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label small fw-600">Keterangan (Opsional)</label>
+                    <label class="form-label">Keterangan <span style="color:var(--ink-faint);font-weight:400">(Opsional)</span></label>
                     <textarea name="keterangan" class="form-control form-control-sm" rows="2"
                               placeholder="Catatan setoran..."></textarea>
                 </div>
@@ -254,7 +263,8 @@
                 <button type="submit" class="btn btn-primary w-100" id="btnSimpanSetoran" disabled>
                     <i class="bi bi-save me-2"></i>Simpan Setoran
                 </button>
-                <div class="text-center mt-2 small text-muted" id="infoHelper">
+                <div class="text-center mt-2" id="infoHelper"
+                     style="font-size:.8rem;color:var(--ink-muted)">
                     Pilih minimal 1 pembayaran
                 </div>
                 @else
@@ -304,14 +314,13 @@ function hitungTotal() {
             infoHelper.textContent = checked.length === 0
                 ? 'Pilih minimal 1 pembayaran'
                 : `${checked.length} pembayaran dipilih — Total: Rp ${fmt(totalSemua)}`;
-            infoHelper.className = checked.length === 0
-                ? 'text-center mt-2 small text-muted'
-                : 'text-center mt-2 small text-success fw-600';
+            infoHelper.style.color = checked.length === 0
+                ? 'var(--ink-muted)' : 'var(--green)';
+            infoHelper.style.fontWeight = checked.length === 0 ? '400' : '600';
         }
     }
 
-    // Sinkron state checkAll
-    const semua = document.querySelectorAll('.chk-bayar');
+    const semua    = document.querySelectorAll('.chk-bayar');
     const checkAll = document.getElementById('checkAll');
     if (checkAll && semua.length > 0) {
         checkAll.checked       = checked.length === semua.length;
@@ -319,10 +328,8 @@ function hitungTotal() {
     }
 }
 
-// Event listener semua checkbox baris
 document.querySelectorAll('.chk-bayar').forEach(c => c.addEventListener('change', hitungTotal));
 
-// Checkbox "Pilih Semua" di header
 const checkAll = document.getElementById('checkAll');
 if (checkAll) {
     checkAll.addEventListener('change', function () {
@@ -331,24 +338,22 @@ if (checkAll) {
     });
 }
 
-// Tombol Pilih Semua
 document.getElementById('btnCeklisSemua')?.addEventListener('click', function () {
     document.querySelectorAll('.chk-bayar').forEach(c => c.checked = true);
     if (checkAll) checkAll.checked = true;
     hitungTotal();
 });
 
-// Tombol Hapus Semua
 document.getElementById('btnHapusSemua')?.addEventListener('click', function () {
     document.querySelectorAll('.chk-bayar').forEach(c => c.checked = false);
     if (checkAll) { checkAll.checked = false; checkAll.indeterminate = false; }
     hitungTotal();
 });
 
-// Highlight baris yang dipilih
+// Highlight baris dipilih
 document.querySelectorAll('.chk-bayar').forEach(c => {
     c.addEventListener('change', function () {
-        this.closest('tr').style.background = this.checked ? '#f0f9ff' : '';
+        this.closest('tr').style.background = this.checked ? 'var(--blue-pale)' : '';
     });
 });
 

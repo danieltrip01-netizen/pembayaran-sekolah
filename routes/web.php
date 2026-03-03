@@ -8,6 +8,9 @@ use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\CetakController;
 use App\Http\Controllers\SiswaImportController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\KreditController;
+use App\Http\Controllers\TahunAjaranController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -20,7 +23,7 @@ require __DIR__ . '/auth.php';
 // Protected routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/siswa/generate-id', function (\Illuminate\Http\Request $request) {
-        $jenjang = strtoupper($request->get('jenjang', 'SD'));
+        $jenjang = strtoupper($request->input('jenjang', 'SD'));
         return response()->json([
             'id_siswa' => \App\Models\Siswa::generateIdSiswa($jenjang),
         ]);
@@ -56,12 +59,38 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/cetak/kartu', [CetakController::class, 'kartu'])->name('cetak.kartu');
 
     // === ADMIN YAYASAN ONLY ===
-    Route::middleware(['role:admin_yayasan'])->prefix('admin')->name('admin.')->group(function () {
-        Route::resource('users', \App\Http\Controllers\UserController::class);
-    });
+    Route::prefix('admin/users')
+        ->name('admin.users.')
+        ->middleware(['auth', 'role:admin_yayasan'])
+        ->group(function () {
+            Route::get('/',    [UserController::class, 'index'])->name('index');
+            Route::get('/create', [UserController::class, 'create'])->name('create');
+            Route::post('/',   [UserController::class, 'store'])->name('store');
+            Route::get('/{user}',      [UserController::class, 'show'])->name('show');
+            Route::get('/{user}/edit', [UserController::class, 'edit'])->name('edit');
+            Route::put('/{user}',      [UserController::class, 'update'])->name('update');
+            Route::delete('/{user}',   [UserController::class, 'destroy'])->name('destroy');
+
+            // ✅ Route ini yang hilang saat pakai Route::resource
+            Route::post(
+                '/{user}/reset-password',
+                [UserController::class, 'resetPassword']
+            )->name('reset-password');
+        });
     Route::get('/setting', [App\Http\Controllers\SettingController::class, 'index'])
         ->name('setting.index');
 
     Route::put('/setting', [App\Http\Controllers\SettingController::class, 'update'])
         ->name('setting.update');
+
+    // ── Kredit Siswa ──────────────────────────────────────────────────
+    Route::get('/kredit',                  [KreditController::class, 'index'])->name('kredit.index');
+    Route::get('/kredit/{siswa}/tambah',   [KreditController::class, 'create'])->name('kredit.create');
+    Route::post('/kredit/{siswa}',         [KreditController::class, 'store'])->name('kredit.store');
+
+    // ── Preview AJAX (opsional, untuk kredit real-time) ───────────────
+    Route::get('/pembayaran/preview', [App\Http\Controllers\PembayaranController::class, 'preview'])
+        ->name('pembayaran.preview');
+
+        
 });

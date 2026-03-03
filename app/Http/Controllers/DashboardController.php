@@ -13,56 +13,124 @@ class DashboardController extends Controller
     public function index()
     {
         $user    = auth()->user();
-        $jenjang = $user->jenjang; // null jika admin yayasan
+        $jenjang = $user->jenjang; // null = admin yayasan, string = petugas jenjang tertentu
 
-        // Query siswa aktif
+        $bulanIni = Carbon::now()->format('Y-m');
+
+        // ── Siswa ────────────────────────────────────────────────────
         $siswaQuery = Siswa::aktif();
         if ($jenjang) {
             $siswaQuery->jenjang($jenjang);
         }
         $totalSiswa = $siswaQuery->count();
 
-        // Total pemasukan keseluruhan
-        $pemasukanQuery = Pembayaran::query();
-        if ($jenjang) {
-            $pemasukanQuery->whereHas('siswa', fn($q) => $q->where('jenjang', $jenjang));
+        // Breakdown per jenjang (hanya relevan untuk admin yayasan)
+        $siswaPerJenjang = [];
+        if (!$jenjang) {
+            foreach (['TK', 'SD', 'SMP'] as $j) {
+                $siswaPerJenjang[$j] = Siswa::aktif()->jenjang($j)->count();
+            }
+        } else {
+            $siswaPerJenjang[$jenjang] = $totalSiswa;
         }
-        $totalPemasukan = $pemasukanQuery->sum('total_bayar');
 
-        // Total pemasukan bulan ini
-        $bulanIni     = Carbon::now()->format('Y-m');
-        $pemasukanBulanIni = (clone $pemasukanQuery)
+        // ── Pembayaran ───────────────────────────────────────────────
+        $pembayaranQuery = Pembayaran::query();
+        if ($jenjang) {
+            $pembayaranQuery->whereHas('siswa', fn($q) => $q->where('jenjang', $jenjang));
+        }
+
+        $totalPemasukan    = (clone $pembayaranQuery)->sum('total_bayar');
+        $pemasukanBulanIni = (clone $pembayaranQuery)
             ->where('tanggal_bayar', 'like', $bulanIni . '%')
             ->sum('total_bayar');
 
-        // Data grafik pemasukan per bulan (12 bulan terakhir)
-        $grafikData = $this->getGrafikPemasukan($jenjang);
+        // Transaksi hari ini
+        $transaksiHariIni = (clone $pembayaranQuery)
+            ->whereDate('tanggal_bayar', Carbon::today())
+            ->count();
 
-        // Siswa belum bayar bulan ini
-        $siswaBelumBayar = $this->getSiswaBelumBayar($bulanIni, $jenjang);
-
-        // Setoran terbaru
-        $setoranTerbaru = Setoran::with('user')
-            ->when($jenjang, fn($q) => $q->where('jenjang', $jenjang))
-            ->latest('tanggal_setoran')
-            ->take(5)
+        // Pembayaran terbaru (10 terakhir)
+        $pembayaranTerbaru = (clone $pembayaranQuery)
+            ->with('siswa', 'user')
+            ->latest('tanggal_bayar')
+            ->take(10)
             ->get();
 
+        // ── Setoran ──────────────────────────────────────────────────
+        $setoranQuery = Setoran::query();
+        if ($jenjang) {
+            $setoranQuery->where('jenjang', $jenjang);
+        }
+
+        $totalSetoran = (clone $setoranQuery)->count();
+
+        $setoranTerbaru = (clone $setoranQuery)
+            ->with('user')
+            ->latest('tanggal_setoran')
+            ->take(8)
+            ->get();
+
+        // Setoran bulan ini (untuk petugas)
+        $setoranBulanIni = (clone $setoranQuery)
+            ->where('tanggal_setoran', 'like', $bulanIni . '%')
+            ->count();
+
+        // ── Grafik ───────────────────────────────────────────────────
+        $grafikData = $this->getGrafikPemasukan($jenjang);
+
+        // ── Siswa belum bayar ────────────────────────────────────────
+        $siswaBelumBayar = $this->getSiswaBelumBayar($bulanIni, $jenjang);
+
+        // ── Pemasukan per jenjang (hanya admin yayasan) ──────────────
+        $pemasukanPerJenjang = [];
+        if (!$jenjang) {
+            foreach (['TK', 'SD', 'SMP'] as $j) {
+                $pemasukanPerJenjang[$j] = Pembayaran::whereHas(
+                    'siswa', fn($q) => $q->where('jenjang', $j)
+                )->sum('total_bayar');
+            }
+        }
+
+        // ── Pembayaran belum disetor (untuk petugas) ─────────────────
+        $belumDisetorCount = 0;
+        $belumDisetorNominal = 0;
+        if ($jenjang) {
+            $belumDisetor = Pembayaran::whereNull('setoran_id')
+                ->whereHas('siswa', fn($q) => $q->where('jenjang', $jenjang))
+                ->get();
+            $belumDisetorCount   = $belumDisetor->count();
+            $belumDisetorNominal = $belumDisetor->sum('total_bayar');
+        }
+
         return view('dashboard.index', compact(
-            'totalSiswa', 'totalPemasukan', 'pemasukanBulanIni',
-            'grafikData', 'siswaBelumBayar', 'setoranTerbaru'
+            'totalSiswa',
+            'siswaPerJenjang',
+            'totalPemasukan',
+            'pemasukanBulanIni',
+            'pemasukanPerJenjang',
+            'transaksiHariIni',
+            'pembayaranTerbaru',
+            'totalSetoran',
+            'setoranTerbaru',
+            'setoranBulanIni',
+            'grafikData',
+            'siswaBelumBayar',
+            'belumDisetorCount',
+            'belumDisetorNominal',
+            'jenjang',
         ));
     }
 
     private function getGrafikPemasukan(?string $jenjang): array
     {
         $namaBulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-        $labels    = [];
-        $data      = [];
+        $labels = [];
+        $data   = [];
 
         for ($i = 11; $i >= 0; $i--) {
-            $tanggal = Carbon::now()->subMonths($i);
-            $labels[] = $namaBulan[$tanggal->month - 1] . ' ' . $tanggal->year;
+            $tanggal  = Carbon::now()->subMonths($i);
+            $labels[] = $namaBulan[$tanggal->month - 1] . ' ' . substr($tanggal->year, 2);
 
             $query = Pembayaran::where('tanggal_bayar', 'like', $tanggal->format('Y-m') . '%');
             if ($jenjang) {
@@ -81,8 +149,8 @@ class DashboardController extends Controller
             ->whereDoesntHave('pembayaran', function ($q) use ($bulan) {
                 $q->whereJsonContains('bulan_bayar', $bulan);
             })
-            ->with('pembayaran')
-            ->take(10)
+            ->orderBy('kelas')
+            ->orderBy('nama')
             ->get();
     }
 }

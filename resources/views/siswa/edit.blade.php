@@ -12,10 +12,12 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold mb-0" style="color: var(--primary)">Edit Data Siswa</h4>
-        <p class="text-muted small mb-0">
-            <code>{{ $siswa->id_siswa }}</code> —
-            <span class="badge badge-{{ strtolower($siswa->jenjang) }}">{{ $siswa->jenjang }}</span>
+        <h4 class="fw-bold mb-1" style="color: var(--navy); font-family:'Sora',sans-serif;">Edit Data Siswa</h4>
+        <p class="mb-0" style="color:var(--ink-muted);font-size:.85rem;">
+            <code style="font-size:.8rem;color:var(--navy);">{{ $siswa->id_siswa }}</code>
+            <span class="mx-1">—</span>
+            @php $jClass = 'badge-' . strtolower($siswa->jenjang); @endphp
+            <span class="{{ $jClass }}">{{ $siswa->jenjang }}</span>
             Kelas {{ $siswa->kelas }}
         </p>
     </div>
@@ -31,23 +33,28 @@
 @csrf
 @method('PUT')
 
-    {{-- ── Informasi Siswa ──────────────────────────────────────── --}}
+    {{-- ── Informasi Siswa ─────────────────────────────────────────── --}}
     <div class="card mb-3">
-        <div class="card-header py-3" style="background:var(--primary);color:white">
-            <h6 class="mb-0 fw-bold"><i class="bi bi-person-badge me-2"></i>Informasi Siswa</h6>
+        <div class="card-header"
+             style="background: var(--navy); color: #fff; border-radius: var(--r-xl) var(--r-xl) 0 0 !important;">
+            <h6 class="mb-0 fw-bold" style="color:#fff;">
+                <i class="bi bi-person-badge me-2"></i>Informasi Siswa
+            </h6>
         </div>
         <div class="card-body">
             <div class="row g-3">
 
                 <div class="col-md-4">
-                    <label class="form-label fw-600 small">ID Siswa</label>
-                    <input type="text" class="form-control bg-light"
+                    <label class="form-label">ID Siswa</label>
+                    <input type="text"
+                           class="form-control"
+                           style="background:var(--bg);color:var(--ink-muted);"
                            value="{{ $siswa->id_siswa }}" readonly>
                     <div class="form-text">ID tidak dapat diubah.</div>
                 </div>
 
                 <div class="col-md-8">
-                    <label class="form-label fw-600 small">
+                    <label class="form-label">
                         Nama Lengkap <span class="text-danger">*</span>
                     </label>
                     <input type="text" name="nama"
@@ -58,7 +65,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-600 small">Jenjang <span class="text-danger">*</span></label>
+                    <label class="form-label">Jenjang <span class="text-danger">*</span></label>
                     <select name="jenjang" id="selectJenjang"
                             class="form-select @error('jenjang') is-invalid @enderror"
                             {{ auth()->user()->jenjang ? 'disabled' : '' }} required>
@@ -73,16 +80,16 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-600 small">Kelas <span class="text-danger">*</span></label>
+                    <label class="form-label">Kelas <span class="text-danger">*</span></label>
                     <select name="kelas" id="selectKelas"
                             class="form-select @error('kelas') is-invalid @enderror" required>
-                        <option value="">-- Pilih --</option>
+                        <option value="">— Pilih Kelas —</option>
                     </select>
                     @error('kelas')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-600 small">Status</label>
+                    <label class="form-label">Status</label>
                     <select name="status" id="selectStatus" class="form-select">
                         <option value="aktif"       {{ old('status', $siswa->status) == 'aktif'       ? 'selected' : '' }}>✅ Aktif</option>
                         <option value="tidak_aktif" {{ old('status', $siswa->status) == 'tidak_aktif' ? 'selected' : '' }}>⛔ Tidak Aktif</option>
@@ -93,10 +100,10 @@
         </div>
     </div>
 
-    {{-- ── Nominal Pembayaran ───────────────────────────────────── --}}
+    {{-- ── Nominal Pembayaran ────────────────────────────────────── --}}
     <div class="card mb-3">
-        <div class="card-header bg-white py-3">
-            <h6 class="mb-0 fw-bold" style="color:var(--primary)">
+        <div class="card-header">
+            <h6 class="mb-0 fw-bold" style="color:var(--navy);">
                 <i class="bi bi-cash-coin me-2"></i>Nominal Pembayaran
             </h6>
         </div>
@@ -104,24 +111,26 @@
             <div class="row g-3">
 
                 <div class="col-md-4">
-                    <label class="form-label fw-600 small">SPP / Bulan <span class="text-danger">*</span></label>
+                    <label class="form-label">SPP / Bulan <span class="text-danger">*</span></label>
                     <div class="input-group">
-                        <span class="input-group-text text-muted small">Rp</span>
+                        <span class="input-group-text">Rp</span>
                         <input type="number" name="nominal_pembayaran" id="inSPP"
                                value="{{ old('nominal_pembayaran', (int) $siswa->nominal_pembayaran) }}"
                                class="form-control @error('nominal_pembayaran') is-invalid @enderror"
                                min="0" step="1000" required>
                     </div>
-                    @error('nominal_pembayaran')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                    @error('nominal_pembayaran')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-600 small">
+                    <label class="form-label">
                         Donatur / Bulan
-                        <small class="text-muted">(pengurang)</small>
+                        <small style="color:var(--ink-muted);font-weight:400;">(pengurang)</small>
                     </label>
                     <div class="input-group">
-                        <span class="input-group-text text-muted small">Rp</span>
+                        <span class="input-group-text">Rp</span>
                         <input type="number" name="nominal_donator" id="inDonatur"
                                value="{{ old('nominal_donator', (int) $siswa->nominal_donator) }}"
                                class="form-control" min="0" step="1000">
@@ -130,12 +139,14 @@
 
                 <div class="col-md-4" id="rowMamin"
                      style="{{ old('jenjang', $siswa->jenjang) === 'TK' ? '' : 'display:none' }}">
-                    <label class="form-label fw-600 small">
+                    <label class="form-label">
                         Mamin / Bulan
-                        <span class="badge bg-warning text-dark ms-1" style="font-size:.6rem">Khusus TK</span>
+                        <span class="badge ms-1"
+                              style="background:var(--yellow-pale);color:#B45309;border:1px solid #FDE68A;
+                                     font-size:.6rem;font-weight:600;">Khusus TK</span>
                     </label>
                     <div class="input-group">
-                        <span class="input-group-text text-muted small">Rp</span>
+                        <span class="input-group-text">Rp</span>
                         <input type="number" name="nominal_mamin" id="inMamin"
                                value="{{ old('nominal_mamin', (int) $siswa->nominal_mamin) }}"
                                class="form-control" min="0" step="1000">
@@ -144,25 +155,26 @@
 
                 {{-- Preview tagihan --}}
                 <div class="col-12">
-                    <div class="rounded-3 p-3" style="background:#f0fdf4;border:1px solid #bbf7d0">
-                        <div class="d-flex align-items-center gap-2 flex-wrap small">
-                            <span class="text-muted">SPP:</span>
-                            <strong id="prevSPP" class="text-primary">Rp 0</strong>
-                            <span class="text-danger">−</span>
-                            <span class="text-muted">Donatur:</span>
-                            <strong id="prevDonatur" class="text-danger">Rp 0</strong>
+                    <div class="rounded-3 p-3"
+                         style="background:#f0fdf4; border:1px solid #bbf7d0;">
+                        <div class="d-flex align-items-center gap-2 flex-wrap" style="font-size:.85rem;">
+                            <span style="color:var(--ink-muted);">SPP:</span>
+                            <strong id="prevSPP" style="color:var(--navy);">Rp 0</strong>
+                            <span style="color:var(--red);">−</span>
+                            <span style="color:var(--ink-muted);">Donatur:</span>
+                            <strong id="prevDonatur" style="color:var(--red);">Rp 0</strong>
                             <div id="prevMaminWrap"
                                  style="{{ old('jenjang', $siswa->jenjang) === 'TK' ? '' : 'display:none' }}"
                                  class="d-flex align-items-center gap-2">
-                                <span class="text-success">+</span>
-                                <span class="text-muted">Mamin:</span>
-                                <strong id="prevMamin" class="text-info">Rp 0</strong>
+                                <span style="color:var(--green);">+</span>
+                                <span style="color:var(--ink-muted);">Mamin:</span>
+                                <strong id="prevMamin" style="color:#0369a1;">Rp 0</strong>
                             </div>
-                            <span class="text-muted">=</span>
-                            <span class="text-muted fw-600">Tagihan/bln:</span>
-                            <strong id="prevTotal" class="text-success" style="font-size:1rem">Rp 0</strong>
+                            <span style="color:var(--ink-muted);">=</span>
+                            <span style="color:var(--ink-muted);">Tagihan/bln:</span>
+                            <strong id="prevTotal" style="color:var(--green);font-size:1rem;">Rp 0</strong>
                         </div>
-                        <div class="mt-1" style="font-size:.7rem;color:#166534">
+                        <div class="mt-1" style="font-size:.72rem; color:#166534;">
                             <i class="bi bi-info-circle me-1"></i>
                             Rumus: (SPP − Donatur + Mamin) × jumlah bulan
                         </div>
@@ -175,8 +187,8 @@
 
     {{-- ── Tanggal & Keterangan ─────────────────────────────────── --}}
     <div class="card mb-4">
-        <div class="card-header bg-white py-3">
-            <h6 class="mb-0 fw-bold" style="color:var(--primary)">
+        <div class="card-header">
+            <h6 class="mb-0 fw-bold" style="color:var(--navy);">
                 <i class="bi bi-calendar3 me-2"></i>Tanggal & Keterangan
             </h6>
         </div>
@@ -184,7 +196,7 @@
             <div class="row g-3">
 
                 <div class="col-md-4">
-                    <label class="form-label fw-600 small">Tanggal Masuk <span class="text-danger">*</span></label>
+                    <label class="form-label">Tanggal Masuk <span class="text-danger">*</span></label>
                     <input type="date" name="tanggal_masuk"
                            value="{{ old('tanggal_masuk', $siswa->tanggal_masuk->format('Y-m-d')) }}"
                            class="form-control @error('tanggal_masuk') is-invalid @enderror" required>
@@ -192,7 +204,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-600 small">Tanggal Keluar</label>
+                    <label class="form-label">Tanggal Keluar</label>
                     <input type="date" name="tanggal_keluar" id="inputTanggalKeluar"
                            value="{{ old('tanggal_keluar', $siswa->tanggal_keluar?->format('Y-m-d')) }}"
                            class="form-control">
@@ -200,7 +212,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-600 small">Keterangan</label>
+                    <label class="form-label">Keterangan</label>
                     <input type="text" name="keterangan"
                            value="{{ old('keterangan', $siswa->keterangan) }}"
                            class="form-control" placeholder="Catatan (opsional)" maxlength="255">
@@ -210,7 +222,7 @@
         </div>
     </div>
 
-    {{-- ── Tombol ───────────────────────────────────────────────── --}}
+    {{-- ── Tombol ──────────────────────────────────────────────── --}}
     <div class="d-flex gap-2 align-items-center">
         <button type="submit" class="btn btn-primary px-4">
             <i class="bi bi-save me-2"></i>Simpan Perubahan
@@ -231,21 +243,23 @@
 {{-- Modal Hapus --}}
 <div class="modal fade" id="modalHapus" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
+        <div class="modal-content">
             <div class="modal-header border-0 pb-0">
                 <div class="rounded-circle d-flex align-items-center justify-content-center"
-                     style="width:48px;height:48px;background:#fee2e2">
+                     style="width:48px;height:48px;background:#fee2e2;flex-shrink:0;">
                     <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
                 </div>
             </div>
             <div class="modal-body pt-2">
-                <h5 class="fw-bold">Hapus Siswa?</h5>
-                <p class="text-muted mb-0">
-                    Data siswa <strong>{{ $siswa->nama }}</strong> ({{ $siswa->id_siswa }}) akan dihapus permanen.
+                <h5 class="fw-bold" style="color:var(--ink);">Hapus Siswa?</h5>
+                <p style="color:var(--ink-muted);margin-bottom:0;">
+                    Data siswa <strong style="color:var(--ink);">{{ $siswa->nama }}</strong>
+                    ({{ $siswa->id_siswa }}) akan dihapus secara permanen dan tidak dapat dikembalikan.
                 </p>
             </div>
             <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        data-bs-dismiss="modal">Batal</button>
                 <form method="POST" action="{{ route('siswa.destroy', $siswa) }}">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-danger btn-sm">
@@ -262,7 +276,7 @@
 @push('scripts')
 <script>
 const kelasByJenjang = {
-    TK:  ['A', 'B'],
+    TK:  ['KB', 'OA', 'OB'],
     SD:  ['I', 'II', 'III', 'IV', 'V', 'VI'],
     SMP: ['VII', 'VIII', 'IX'],
 };
@@ -271,7 +285,7 @@ const currentJenjang = "{{ old('jenjang', $siswa->jenjang) }}";
 
 function renderKelas(jenjang, selected = '') {
     const sel = document.getElementById('selectKelas');
-    sel.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+    sel.innerHTML = '<option value="">— Pilih Kelas —</option>';
     (kelasByJenjang[jenjang] || []).forEach(k => {
         sel.appendChild(new Option('Kelas ' + k, k, false, k === selected));
     });
@@ -290,14 +304,12 @@ function updatePreview() {
     const donor = parseFloat(document.getElementById('inDonatur').value) || 0;
     const mamin = parseFloat(document.getElementById('inMamin').value)   || 0;
     const isTK  = document.getElementById('selectJenjang').value === 'TK';
-
-    // ✅ RUMUS BENAR: (SPP - Donatur + Mamin)
     const total = spp - donor + (isTK ? mamin : 0);
 
-    document.getElementById('prevSPP').textContent    = 'Rp ' + fmt(spp);
+    document.getElementById('prevSPP').textContent     = 'Rp ' + fmt(spp);
     document.getElementById('prevDonatur').textContent = 'Rp ' + fmt(donor);
-    document.getElementById('prevMamin').textContent  = 'Rp ' + fmt(mamin);
-    document.getElementById('prevTotal').textContent  = 'Rp ' + fmt(total);
+    document.getElementById('prevMamin').textContent   = 'Rp ' + fmt(mamin);
+    document.getElementById('prevTotal').textContent   = 'Rp ' + fmt(total);
 }
 
 function fmt(n) {
@@ -319,7 +331,6 @@ document.getElementById('selectStatus').addEventListener('change', function () {
     document.getElementById(id).addEventListener('input', updatePreview);
 });
 
-// Init
 renderKelas(currentJenjang, currentKelas);
 toggleMamin(currentJenjang);
 updatePreview();

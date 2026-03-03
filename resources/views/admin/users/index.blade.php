@@ -103,7 +103,7 @@
             <table class="table mb-0">
                 <thead>
                     <tr>
-                        <th style="width:40px">#</th>
+                        <th style="width:40px">No</th>
                         <th>Nama</th>
                         <th>Email</th>
                         <th>Role</th>

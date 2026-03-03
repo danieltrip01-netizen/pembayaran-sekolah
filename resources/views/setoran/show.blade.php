@@ -9,23 +9,13 @@
 
 @section('content')
 
-@php
-    $jStyle = match($setoran->jenjang) {
-        'TK'    => ['color'=>'#db2777','bg'=>'#fce7f3','border'=>'#f9a8d4'],
-        'SD'    => ['color'=>'#1d4ed8','bg'=>'#dbeafe','border'=>'#93c5fd'],
-        'SMP'   => ['color'=>'#059669','bg'=>'#d1fae5','border'=>'#6ee7b7'],
-        default => ['color'=>'#64748b','bg'=>'#f1f5f9','border'=>'#e2e8f0'],
-    };
-@endphp
-
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold mb-0" style="color: var(--primary)">{{ $setoran->kode_setoran }}</h4>
-        <p class="text-muted small mb-0">
-            <span class="badge rounded-pill px-3 me-1"
-                  style="background:{{ $jStyle['bg'] }};color:{{ $jStyle['color'] }};border:1px solid {{ $jStyle['border'] }}">
-                {{ $setoran->jenjang }}
-            </span>
+        <h4 class="fw-bold mb-1" style="font-family:'Sora',sans-serif;color:var(--ink)">
+            {{ $setoran->kode_setoran }}
+        </h4>
+        <p class="mb-0 d-flex align-items-center gap-2" style="font-size:.85rem;color:var(--ink-muted)">
+            <span class="badge-{{ $setoran->jenjang }}">{{ $setoran->jenjang }}</span>
             {{ $setoran->tanggal_setoran->isoFormat('dddd, D MMMM Y') }}
         </p>
     </div>
@@ -40,81 +30,78 @@
     </div>
 </div>
 
-{{-- @if(session('success'))
-<div class="alert alert-success alert-dismissible fade show rounded-3 border-0 shadow-sm mb-3">
-    <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-@endif --}}
-
 <div class="row g-3">
 
     {{-- ── Info Setoran ──────────────────────────────────────────── --}}
     <div class="col-md-4">
         <div class="card">
-            <div class="card-header py-3" style="background:var(--primary);color:white">
-                <h6 class="mb-0 fw-bold"><i class="bi bi-receipt me-2"></i>Informasi Setoran</h6>
+            <div class="card-header py-3" style="background:var(--navy)">
+                <h6 class="mb-0 fw-bold text-white">
+                    <i class="bi bi-receipt me-2"></i>Informasi Setoran
+                </h6>
             </div>
             <div class="card-body">
-                <table class="table table-sm table-borderless mb-0">
+                <table class="table table-sm table-borderless mb-0" style="font-size:.875rem">
                     <tr>
-                        <td class="text-muted" style="width:100px">Kode</td>
-                        <td><code class="fw-bold">{{ $setoran->kode_setoran }}</code></td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">Tanggal</td>
-                        <td>{{ $setoran->tanggal_setoran->isoFormat('D MMM Y') }}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">Jenjang</td>
+                        <td style="color:var(--ink-muted);width:100px">Kode</td>
                         <td>
-                            <span class="badge rounded-pill px-3"
-                                  style="background:{{ $jStyle['bg'] }};color:{{ $jStyle['color'] }};border:1px solid {{ $jStyle['border'] }}">
-                                {{ $setoran->jenjang }}
-                            </span>
+                            <code class="fw-bold" style="color:var(--blue);background:var(--blue-pale);
+                                  padding:.15rem .45rem;border-radius:4px">
+                                {{ $setoran->kode_setoran }}
+                            </code>
                         </td>
                     </tr>
                     <tr>
-                        <td class="text-muted">Petugas</td>
-                        <td class="fw-600">{{ $setoran->user->name ?? '-' }}</td>
+                        <td style="color:var(--ink-muted)">Tanggal</td>
+                        <td style="color:var(--ink)">{{ $setoran->tanggal_setoran->isoFormat('D MMM Y') }}</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--ink-muted)">Jenjang</td>
+                        <td>
+                            <span class="badge-{{ $setoran->jenjang }}">{{ $setoran->jenjang }}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--ink-muted)">Petugas</td>
+                        <td class="fw-600" style="color:var(--ink)">{{ $setoran->user->name ?? '—' }}</td>
                     </tr>
                     @if($setoran->keterangan)
                     <tr>
-                        <td class="text-muted">Keterangan</td>
-                        <td>{{ $setoran->keterangan }}</td>
+                        <td style="color:var(--ink-muted)">Keterangan</td>
+                        <td style="color:var(--ink-soft)">{{ $setoran->keterangan }}</td>
                     </tr>
                     @endif
                 </table>
 
-                <hr class="my-3">
+                <hr style="border-color:var(--border);margin:1rem 0">
 
                 {{-- Rekap Nominal --}}
-                <div class="rounded-3 p-3" style="background:#f8fafc;border:1px solid #e2e8f0">
-                    <div class="d-flex justify-content-between small mb-2">
-                        <span class="text-muted">Total SPP</span>
-                        <strong>Rp {{ number_format($setoran->total_nominal, 0, ',', '.') }}</strong>
+                <div class="rounded-3 p-3" style="background:var(--bg);border:1px solid var(--border)">
+                    <div class="d-flex justify-content-between mb-2" style="font-size:.85rem">
+                        <span style="color:var(--ink-muted)">Total SPP</span>
+                        <strong style="color:var(--ink)">Rp {{ number_format($setoran->total_nominal, 0, ',', '.') }}</strong>
                     </div>
                     @if($setoran->total_mamin > 0)
-                    <div class="d-flex justify-content-between small mb-2">
-                        <span class="text-muted">Total Mamin</span>
+                    <div class="d-flex justify-content-between mb-2" style="font-size:.85rem">
+                        <span style="color:var(--ink-muted)">Total Mamin</span>
                         <strong style="color:#6366f1">Rp {{ number_format($setoran->total_mamin, 0, ',', '.') }}</strong>
                     </div>
                     @endif
-                    <div class="d-flex justify-content-between small mb-2">
-                        <span class="text-muted">Jumlah Transaksi</span>
-                        <strong>{{ $setoran->pembayaran->count() }} transaksi</strong>
+                    <div class="d-flex justify-content-between mb-2" style="font-size:.85rem">
+                        <span style="color:var(--ink-muted)">Jumlah Transaksi</span>
+                        <strong style="color:var(--ink)">{{ $setoran->pembayaran->count() }} transaksi</strong>
                     </div>
-                    <hr class="my-2">
+                    <div style="height:1px;background:var(--border);margin:.6rem 0"></div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-bold small">Grand Total</span>
-                        <strong class="text-success" style="font-size:1.1rem">
+                        <span class="fw-600" style="font-size:.85rem;color:var(--ink-soft)">Grand Total</span>
+                        <strong style="font-size:1.1rem;color:var(--green)">
                             Rp {{ number_format($setoran->total_keseluruhan, 0, ',', '.') }}
                         </strong>
                     </div>
                 </div>
             </div>
 
-            <div class="card-footer bg-white">
+            <div class="card-footer bg-white" style="border-top:1px solid var(--border)">
                 <form method="POST" action="{{ route('setoran.destroy', $setoran) }}"
                       onsubmit="return confirm('Hapus setoran {{ $setoran->kode_setoran }}?\n\nSemua pembayaran akan dilepas dari setoran ini dan dapat disetor ulang.')">
                     @csrf @method('DELETE')
@@ -129,15 +116,18 @@
     {{-- ── Daftar Pembayaran ─────────────────────────────────────── --}}
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-bold" style="color:var(--primary)">
-                    <i class="bi bi-list-check me-2"></i>Daftar Pembayaran
-                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle ms-1">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center"
+                 style="border-bottom:1px solid var(--border)">
+                <h6 class="mb-0 fw-bold" style="color:var(--ink)">
+                    <i class="bi bi-list-check me-2" style="color:var(--blue)"></i>Daftar Pembayaran
+                    <span style="display:inline-flex;align-items:center;font-size:.72rem;font-weight:600;
+                                 padding:.2rem .55rem;border-radius:999px;margin-left:.35rem;
+                                 background:var(--bg);color:var(--ink-muted);border:1px solid var(--border)">
                         {{ $setoran->pembayaran->count() }}
                     </span>
                 </h6>
-                <span class="small text-muted">
-                    Total: <strong class="text-success">
+                <span style="font-size:.83rem;color:var(--ink-muted)">
+                    Total: <strong style="color:var(--green)">
                         Rp {{ number_format($setoran->total_keseluruhan, 0, ',', '.') }}
                     </strong>
                 </span>
@@ -146,7 +136,7 @@
                 <table class="table mb-0" style="font-size:.82rem">
                     <thead>
                         <tr>
-                            <th style="width:32px">#</th>
+                            <th style="width:32px">No</th>
                             <th>Kode</th>
                             <th>Nama Siswa</th>
                             <th>Kelas</th>
@@ -161,42 +151,45 @@
                     <tbody>
                         @forelse($setoran->pembayaran as $i => $p)
                         <tr>
-                            <td class="text-muted">{{ $i + 1 }}</td>
+                            <td style="color:var(--ink-faint)">{{ $i + 1 }}</td>
                             <td>
                                 <a href="{{ route('pembayaran.show', $p) }}"
-                                   class="text-decoration-none" style="color:var(--primary)">
-                                    <code>{{ $p->kode_bayar }}</code>
+                                   class="text-decoration-none fw-600" style="color:var(--blue)">
+                                    <code style="background:var(--blue-pale);color:var(--blue);
+                                                 padding:.15rem .4rem;border-radius:4px;font-size:.78rem">
+                                        {{ $p->kode_bayar }}
+                                    </code>
                                 </a>
-                                <div class="text-muted" style="font-size:.7rem">
+                                <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.15rem">
                                     {{ $p->tanggal_bayar->format('d/m/Y') }}
                                 </div>
                             </td>
-                            <td class="fw-600">{{ $p->siswa->nama ?? '-' }}</td>
-                            <td>{{ $p->siswa->kelas ?? '-' }}</td>
-                            <td>
+                            <td class="fw-600" style="color:var(--ink)">{{ $p->siswa->nama ?? '—' }}</td>
+                            <td style="color:var(--ink-soft)">{{ $p->siswa->kelas ?? '—' }}</td>
+                            <td style="color:var(--ink-soft)">
                                 {{ $p->bulan_label }}
-                                <div class="text-muted" style="font-size:.7rem">{{ $p->jumlah_bulan }} bulan</div>
+                                <div style="font-size:.72rem;color:var(--ink-faint)">{{ $p->jumlah_bulan }} bulan</div>
                             </td>
-                            <td class="text-end">
-                                Rp {{ number_format($p->nominal_per_bulan * $p->jumlah_bulan, 0, ',', '.') }}
+                            <td class="text-end" style="color:var(--ink-soft)">
+                                Rp {{ number_format(($p->nominal_per_bulan - ($p->nominal_donator / $p->jumlah_bulan)), 0, ',', '.') }}
                             </td>
                             @if($setoran->jenjang === 'TK')
                             <td class="text-end" style="color:#6366f1">
                                 @if($p->nominal_mamin > 0)
                                     Rp {{ number_format($p->nominal_mamin, 0, ',', '.') }}
                                 @else
-                                    <span class="text-muted">—</span>
+                                    <span style="color:var(--ink-faint)">—</span>
                                 @endif
                             </td>
                             @endif
-                            <td class="text-end fw-bold text-success">
+                            <td class="text-end fw-bold" style="color:var(--green)">
                                 Rp {{ number_format($p->total_bayar, 0, ',', '.') }}
                             </td>
                         </tr>
                         @empty
                         <tr>
                             <td colspan="{{ $setoran->jenjang === 'TK' ? 8 : 7 }}"
-                                class="text-center py-4 text-muted">
+                                class="text-center py-4" style="color:var(--ink-muted)">
                                 Tidak ada pembayaran dalam setoran ini.
                             </td>
                         </tr>
@@ -205,20 +198,17 @@
 
                     @if($setoran->pembayaran->isNotEmpty())
                     <tfoot>
-                        <tr class="fw-bold" style="background:#f8fafc">
-                            <td colspan="{{ $setoran->jenjang === 'TK' ? 5 : 5 }}"
-                                class="text-end text-muted small py-2">
+                        <tr class="fw-600" style="background:var(--bg)">
+                            <td colspan="{{ $setoran->jenjang === 'TK' ? 6 : 6 }}"
+                                class="text-end py-2" style="font-size:.82rem;color:var(--ink-muted)">
                                 Total ({{ $setoran->pembayaran->count() }} transaksi):
                             </td>
-                            <td class="text-end small">
-                                Rp {{ number_format($setoran->pembayaran->sum(fn($p) => $p->nominal_per_bulan * $p->jumlah_bulan), 0, ',', '.') }}
-                            </td>
                             @if($setoran->jenjang === 'TK')
-                            <td class="text-end small" style="color:#6366f1">
+                            <td class="text-end" style="font-size:.85rem;color:#6366f1">
                                 Rp {{ number_format($setoran->pembayaran->sum('nominal_mamin'), 0, ',', '.') }}
                             </td>
                             @endif
-                            <td class="text-end text-success">
+                            <td class="text-end" style="font-size:.85rem;color:var(--green)">
                                 Rp {{ number_format($setoran->total_keseluruhan, 0, ',', '.') }}
                             </td>
                         </tr>
