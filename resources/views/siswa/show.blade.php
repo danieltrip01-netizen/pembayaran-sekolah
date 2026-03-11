@@ -9,15 +9,21 @@
 
 @section('content')
 
+@php
+    // $kelasAktif sudah dikirim controller (SiswaKelas model | null)
+    $ka = $kelasAktif;
+@endphp
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="fw-bold mb-1" style="color: var(--navy); font-family:'Sora',sans-serif;">
             {{ $siswa->nama }}
         </h4>
         <p class="mb-0" style="font-size:.85rem; color:var(--ink-muted);">
-            @php $jClass = 'badge-' . strtolower($siswa->jenjang); @endphp
-            <span class="{{ $jClass }}">{{ $siswa->jenjang }}</span>
-            <span class="mx-1">·</span>Kelas {{ $siswa->kelas }}
+            <span class="badge-{{ strtolower($siswa->jenjang) }}">{{ $siswa->jenjang }}</span>
+            @if($ka?->kelas)
+                <span class="mx-1">·</span>Kelas {{ $ka->kelas->nama }}
+            @endif
             <span class="mx-1">·</span>
             <code style="font-size:.8rem; color:var(--ink-soft);">{{ $siswa->id_siswa }}</code>
         </p>
@@ -27,7 +33,7 @@
            class="btn btn-primary btn-sm">
             <i class="bi bi-plus-circle me-1"></i>Bayar SPP
         </a>
-        <a href="{{ route('kredit.create', $siswa) }}" class="btn btn-outline-success btn-sm">
+        {{-- <a href="{{ route('kredit.create', $siswa) }}" class="btn btn-outline-success btn-sm">
             <i class="bi bi-piggy-bank me-1"></i>Kredit
             @if($siswa->saldo_kredit > 0)
             <span class="badge ms-1"
@@ -35,7 +41,7 @@
                 Rp {{ number_format($siswa->saldo_kredit, 0, ',', '.') }}
             </span>
             @endif
-        </a>
+        </a> --}}
         <a href="{{ route('siswa.edit', $siswa) }}" class="btn btn-outline-warning btn-sm">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
@@ -45,7 +51,7 @@
     </div>
 </div>
 
-{{-- Saldo kredit banner --}}
+{{-- Saldo kredit banner
 @if($siswa->saldo_kredit > 0)
 <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded-3"
      style="background:#f0fdf4; border:1px solid #86efac;">
@@ -62,6 +68,17 @@
         <i class="bi bi-clock-history me-1"></i>Lihat Riwayat
     </a>
 </div>
+@endif --}}
+
+{{-- Warning jika belum ada kelas aktif --}}
+@if(!$ka)
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div>
+        Siswa ini belum ditempatkan di kelas untuk tahun pelajaran aktif.
+        <a href="{{ route('siswa.edit', $siswa) }}" class="alert-link ms-1">Atur sekarang →</a>
+    </div>
+</div>
 @endif
 
 <div class="row g-3">
@@ -76,17 +93,9 @@
             </div>
             <div class="card-body p-0">
                 <table class="table table-sm table-borderless mb-0" style="font-size:.865rem;">
-                    @php
-                        $rows = [
-                            ['ID Siswa',    '<code style="font-size:.8rem;color:var(--navy);">' . e($siswa->id_siswa) . '</code>'],
-                            ['Nama',        '<span class="fw-600" style="color:var(--ink);">' . e($siswa->nama) . '</span>'],
-                        ];
-                    @endphp
                     <tbody>
                         <tr>
-                            <td class="ps-4 py-2" style="color:var(--ink-muted);width:120px;font-weight:600;font-size:.78rem;">
-                                ID Siswa
-                            </td>
+                            <td class="ps-4 py-2" style="color:var(--ink-muted);width:120px;font-weight:600;font-size:.78rem;">ID Siswa</td>
                             <td class="py-2 pe-4">
                                 <code style="font-size:.8rem;color:var(--navy);">{{ $siswa->id_siswa }}</code>
                             </td>
@@ -103,32 +112,57 @@
                         </tr>
                         <tr>
                             <td class="ps-4 py-2" style="color:var(--ink-muted);font-weight:600;font-size:.78rem;">Kelas</td>
-                            <td class="py-2 pe-4" style="color:var(--ink-soft);">{{ $siswa->kelas }}</td>
+                            <td class="py-2 pe-4" style="color:var(--ink-soft);">
+                                {{ $ka?->kelas?->nama ?? '—' }}
+                                @if($ka?->tahunPelajaran)
+                                    <small class="d-block" style="color:var(--ink-faint);font-size:.72rem;">
+                                        T.A. {{ $ka->tahunPelajaran->nama }}
+                                    </small>
+                                @endif
+                            </td>
                         </tr>
+
+                        {{-- Nominal dari siswa_kelas (bukan dari siswa) --}}
                         <tr style="background:var(--bg);">
                             <td class="ps-4 py-2" style="color:var(--ink-muted);font-weight:600;font-size:.78rem;">SPP/Bulan</td>
                             <td class="py-2 pe-4 fw-600" style="color:var(--navy);">
-                                Rp {{ number_format($siswa->nominal_pembayaran, 0, ',', '.') }}
+                                @if($ka)
+                                    Rp {{ number_format($ka->nominal_spp, 0, ',', '.') }}
+                                @else
+                                    <span style="color:var(--ink-faint);">—</span>
+                                @endif
                             </td>
                         </tr>
                         <tr>
                             <td class="ps-4 py-2" style="color:var(--ink-muted);font-weight:600;font-size:.78rem;">Donatur/Bln</td>
                             <td class="py-2 pe-4" style="color:var(--red);">
-                                −Rp {{ number_format($siswa->nominal_donator, 0, ',', '.') }}
+                                @if($ka && $ka->nominal_donator > 0)
+                                    −Rp {{ number_format($ka->nominal_donator, 0, ',', '.') }}
+                                @else
+                                    <span style="color:var(--ink-faint);">—</span>
+                                @endif
                             </td>
                         </tr>
                         @if($siswa->jenjang === 'TK')
                         <tr>
                             <td class="ps-4 py-2" style="color:var(--ink-muted);font-weight:600;font-size:.78rem;">Mamin/Bln</td>
                             <td class="py-2 pe-4" style="color:#0369a1;">
-                                +Rp {{ number_format($siswa->nominal_mamin, 0, ',', '.') }}
+                                @if($ka && $ka->nominal_mamin > 0)
+                                    +Rp {{ number_format($ka->nominal_mamin, 0, ',', '.') }}
+                                @else
+                                    <span style="color:var(--ink-faint);">—</span>
+                                @endif
                             </td>
                         </tr>
                         @endif
                         <tr style="background:var(--bg);">
                             <td class="ps-4 py-2" style="color:var(--ink-muted);font-weight:600;font-size:.78rem;">Total/Bulan</td>
                             <td class="py-2 pe-4 fw-600" style="color:var(--green);font-size:.95rem;">
-                                Rp {{ number_format($siswa->total_tagihan, 0, ',', '.') }}
+                                @if($ka)
+                                    Rp {{ number_format($ka->getTagihanPerBulan(), 0, ',', '.') }}
+                                @else
+                                    <span style="color:var(--ink-faint);">—</span>
+                                @endif
                             </td>
                         </tr>
                         <tr>
@@ -222,9 +256,10 @@
                             <i class="bi bi-check-circle-fill" style="color:#16a34a;"></i>
                             <div style="font-size:.7rem;color:#15803d;">
                                 @if($bs['data_bayar'])
-                                Rp {{ number_format(($bs['data_bayar']->total_bayar / max($bs['data_bayar']->jumlah_bulan, 1)), 0, ',', '.') }}
-                                @else
-                                Rp {{ number_format($siswa->total_tagihan ?? 0, 0, ',', '.') }}
+                                    {{-- Nominal per bulan sudah tersimpan sebagai snapshot --}}
+                                    Rp {{ number_format(($bs['data_bayar']->total_bayar / $bs['data_bayar']->jumlah_bulan), 0, ',', '.') }}
+                                @elseif($ka)
+                                    Rp {{ number_format($ka->getTagihanPerBulan(), 0, ',', '.') }}
                                 @endif
                             </div>
                         </div>
@@ -250,7 +285,7 @@
 
         <!-- ─── Riwayat Pembayaran ─── -->
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header">
                 <h6 class="mb-0 fw-bold">
                     <i class="bi bi-clock-history me-2" style="color:var(--blue);"></i>Riwayat Pembayaran
                 </h6>
@@ -277,6 +312,7 @@
                             <td class="small" style="color:var(--ink-soft);">
                                 {{ $p->tanggal_bayar->format('d/m/Y') }}
                             </td>
+                            {{-- bulan_label kini dari relasi pembayaran_bulan (sudah eager-loaded) --}}
                             <td class="small" style="color:var(--ink-soft);">{{ $p->bulan_label }}</td>
                             <td class="text-end small">
                                 @if(($p->kredit_digunakan ?? 0) > 0)

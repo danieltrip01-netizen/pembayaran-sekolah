@@ -1,3 +1,4 @@
+{{-- resources/views/siswa/index.blade.php --}}
 @extends('layouts.app')
 @section('title', 'Data Siswa')
 
@@ -11,7 +12,23 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="fw-bold mb-1" style="color: var(--navy); font-family: 'Sora', sans-serif;">Data Siswa</h4>
-        <p class="mb-0" style="color: var(--ink-muted); font-size: .85rem;">Kelola dan pantau data pembayaran siswa</p>
+        <p class="mb-0" style="color: var(--ink-muted); font-size: .85rem;">
+            Kelola dan pantau data pembayaran siswa
+            @if($tahunPelajaran)
+                &nbsp;·&nbsp;
+                <span class="badge"
+                      style="background:var(--blue-pale);color:var(--blue-dark);
+                             border:1px solid var(--blue-light);font-size:.72rem;font-weight:600;">
+                    <i class="bi bi-calendar-check me-1"></i>T.A. {{ $tahunPelajaran->nama }}
+                </span>
+            @else
+                &nbsp;·&nbsp;
+                <span class="badge"
+                      style="background:#fff3cd;color:#856404;border:1px solid #ffc107;font-size:.72rem;">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Tidak ada tahun pelajaran aktif
+                </span>
+            @endif
+        </p>
     </div>
     <div class="d-flex gap-2">
         <a href="{{ route('siswa.import.index') }}" class="btn btn-outline-success btn-sm px-3">
@@ -35,6 +52,7 @@
                            class="form-control" placeholder="Ketik nama siswa...">
                 </div>
             </div>
+
             @if(!$jenjang)
             <div class="col-md-2">
                 <label class="form-label">Jenjang</label>
@@ -46,16 +64,20 @@
                 </select>
             </div>
             @endif
+
+            {{-- Kelas — dari tabel kelas (bukan hardcoded string) --}}
             <div class="col-md-2">
                 <label class="form-label">Kelas</label>
-                <select name="kelas" class="form-select form-select-sm">
+                <select name="kelas_id" class="form-select form-select-sm">
                     <option value="">Semua Kelas</option>
-                    @php $kelasList = ['KB','A','B','I','II','III','IV','V','VI','VII','VIII','IX']; @endphp
-                    @foreach($kelasList as $k)
-                    <option value="{{ $k }}" {{ request('kelas') == $k ? 'selected' : '' }}>{{ $k }}</option>
+                    @foreach($kelasOptions as $k)
+                    <option value="{{ $k->id }}" {{ request('kelas_id') == $k->id ? 'selected' : '' }}>
+                        {{ $k->nama }} ({{ $k->jenjang }})
+                    </option>
                     @endforeach
                 </select>
             </div>
+
             <div class="col-md-2">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select form-select-sm">
@@ -64,11 +86,12 @@
                     <option value="tidak_aktif" {{ request('status') == 'tidak_aktif' ? 'selected' : '' }}>Tidak Aktif</option>
                 </select>
             </div>
+
             <div class="col-md-2 d-flex gap-1">
                 <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
                     <i class="bi bi-funnel me-1"></i>Filter
                 </button>
-                @if(request()->hasAny(['search','jenjang','kelas','status']))
+                @if(request()->hasAny(['search','jenjang','kelas_id','status']))
                 <a href="{{ route('siswa.index') }}" class="btn btn-outline-secondary btn-sm" title="Reset filter">
                     <i class="bi bi-arrow-counterclockwise"></i>
                 </a>
@@ -87,10 +110,9 @@
                     <tr>
                         <th class="ps-4" style="width:50px">No</th>
                         <th>Siswa</th>
-                        <th class="text-center">Kelas</th>
+                        <th class="text-center">Kelas (T.A. Aktif)</th>
                         <th class="text-end">SPP/Bln</th>
                         <th class="text-end">Donatur</th>
-                        <th class="text-end">Mamin</th>
                         <th class="text-end">Total Tagihan</th>
                         <th class="text-center">Status</th>
                         <th class="text-end pe-4">Aksi</th>
@@ -98,6 +120,10 @@
                 </thead>
                 <tbody>
                     @forelse($siswa as $index => $s)
+                    @php
+                        // Ambil dari kelasAktif (sudah eager-loaded)
+                        $ka = $s->kelasAktif;
+                    @endphp
                     <tr>
                         <td class="ps-4" style="color: var(--ink-faint); font-size: .8rem;">
                             {{ $siswa->firstItem() + $index }}
@@ -109,32 +135,30 @@
                             <small style="color: var(--ink-muted); font-size: .75rem;">
                                 {{ $s->id_siswa }}
                                 <span class="mx-1">·</span>
-                                @php $jClass = 'badge-' . strtolower($s->jenjang); @endphp
-                                <span class="{{ $jClass }}">{{ $s->jenjang }}</span>
+                                <span class="badge-{{ strtolower($s->jenjang) }}">{{ $s->jenjang }}</span>
                             </small>
                         </td>
                         <td class="text-center">
-                            <span class="badge rounded-pill fw-600"
-                                  style="background: var(--blue-pale); color: var(--blue-dark);
-                                         border: 1px solid var(--blue-light); font-size: .75rem; padding: .3rem .7rem;">
-                                {{ $s->kelas }}
-                            </span>
+                            @if($ka?->kelas)
+                                <span class="badge rounded-pill fw-600"
+                                      style="background: var(--blue-pale); color: var(--blue-dark);
+                                             border: 1px solid var(--blue-light); font-size: .75rem; padding: .3rem .7rem;">
+                                    {{ $ka->kelas->nama }}
+                                </span>
+                            @else
+                                <span style="color: var(--ink-faint); font-size:.78rem;">Belum ditempatkan</span>
+                            @endif
                         </td>
                         <td class="text-end fw-600" style="color: var(--ink-soft);">
-                            {{ number_format($s->nominal_pembayaran, 0, ',', '.') }}
+                            {{ $ka ? number_format($ka->nominal_spp, 0, ',', '.') : '—' }}
                         </td>
                         <td class="text-end fw-600" style="color: var(--red);">
-                            {{ $s->nominal_donator > 0
-                                ? number_format($s->nominal_donator, 0, ',', '.')
-                                : '—' }}
-                        </td>
-                        <td class="text-end fw-600" style="color: #0369a1;">
-                            {{ ($s->jenjang === 'TK' && $s->nominal_mamin > 0)
-                                ? number_format($s->nominal_mamin, 0, ',', '.')
+                            {{ ($ka && $ka->nominal_donator > 0)
+                                ? number_format($ka->nominal_donator, 0, ',', '.')
                                 : '—' }}
                         </td>
                         <td class="text-end fw-600" style="color: var(--navy);">
-                            {{ number_format($s->total_tagihan, 0, ',', '.') }}
+                            {{ $ka ? number_format($ka->getTagihanPerBulan(), 0, ',', '.') : '—' }}
                         </td>
                         <td class="text-center">
                             @if($s->status === 'aktif')
@@ -180,7 +204,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="text-center py-5">
+                        <td colspan="8" class="text-center py-5">
                             <div class="mb-3" style="color: var(--ink-faint);">
                                 <i class="bi bi-people fs-1"></i>
                             </div>

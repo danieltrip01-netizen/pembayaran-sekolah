@@ -74,7 +74,7 @@
                     <div>
                         <span style="color:var(--ink-muted);">Donatur</span>
                         <div class="fw-600" style="color:var(--red);" id="previewDonatur">
-                            Rp {{ number_format($pembayaran->nominal_donator / max($pembayaran->jumlah_bulan,1), 0, ',', '.') }}/bln
+                            Rp {{ number_format((int) round($pembayaran->nominal_donator / max($pembayaran->jumlah_bulan,1)), 0, ',', '.') }}/bln
                         </div>
                     </div>
                     @if($pembayaran->nominal_mamin > 0)
@@ -124,21 +124,22 @@
                     @error('tanggal_bayar')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">
-                        Donatur / Bulan
-                        <small style="color:var(--ink-muted);font-weight:400;">(akan dihitung ulang)</small>
-                    </label>
-                    <div class="input-group">
-                        <span class="input-group-text">Rp</span>
-                        <input type="number" name="nominal_donator" id="inputDonatur"
-                               value="{{ old('nominal_donator', (int) ($pembayaran->nominal_donator / max($pembayaran->jumlah_bulan, 1))) }}"
-                               class="form-control @error('nominal_donator') is-invalid @enderror"
-                               min="0" step="1000">
-                        <span class="input-group-text" style="color:var(--ink-muted);font-size:.82rem;">/bln</span>
+                    {{-- nominal_donator di DB adalah TOTAL. Tampilkan per-bulan untuk input. --}}
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Donatur / Bulan
+                            <small style="color:var(--ink-muted);font-weight:400;">(akan dihitung ulang)</small>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">Rp</span>
+                            <input type="number" name="nominal_donator" id="inputDonatur"
+                                   value="{{ old('nominal_donator', (int) round($pembayaran->nominal_donator / max($pembayaran->jumlah_bulan, 1))) }}"
+                                   class="form-control @error('nominal_donator') is-invalid @enderror"
+                                   min="0" step="1000">
+                            <span class="input-group-text" style="color:var(--ink-muted);font-size:.82rem;">/bln</span>
+                        </div>
+                        @error('nominal_donator')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
-                    @error('nominal_donator')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
 
                 {{-- Preview total baru --}}
                 <div class="rounded-3 p-3 mb-4"

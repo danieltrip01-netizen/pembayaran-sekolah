@@ -2,66 +2,84 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Siswa;
 use App\Models\Pembayaran;
+use App\Models\PembayaranBulan;
 use App\Models\Setoran;
-use Illuminate\Http\Request;
+use App\Models\Siswa;
+use App\Models\TahunPelajaran;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $user    = auth()->user();
-        $jenjang = $user->jenjang; // null = admin yayasan, string = petugas jenjang tertentu
+        $user    = Auth::user();
+        $jenjang = $user->jenjang; // null = admin yayasan
+
+        // Tahun pelajaran aktif — dipakai di seluruh method ini
+        $tahunPelajaran   = TahunPelajaran::aktif();
+        $tahunPelajaranId = $tahunPelajaran?->id;
 
         $bulanIni = Carbon::now()->format('Y-m');
 
-        // ── Siswa ────────────────────────────────────────────────────
-        $siswaQuery = Siswa::aktif();
-        if ($jenjang) {
-            $siswaQuery->jenjang($jenjang);
-        }
+        // ── Siswa ─────────────────────────────────────────────────────────────
+        // Hanya hitung siswa yang terdaftar di tahun pelajaran aktif
+        $siswaQuery = Siswa::aktif()
+            ->when($tahunPelajaranId,
+                fn($q) => $q->whereHas('kelasAktif'),   // kelasAktif sudah filter is_active
+                fn($q) => $q->whereRaw('0 = 1')          // tidak ada tahun aktif → 0 siswa
+            )
+            ->when($jenjang, fn($q) => $q->jenjang($jenjang));
+
         $totalSiswa = $siswaQuery->count();
 
-        // Breakdown per jenjang (hanya relevan untuk admin yayasan)
         $siswaPerJenjang = [];
         if (!$jenjang) {
+            // 1 query grouped, bukan 3 query terpisah
+            $counts = Siswa::aktif()
+                ->when($tahunPelajaranId, fn($q) => $q->whereHas('kelasAktif'))
+                ->selectRaw('jenjang, COUNT(*) as total')
+                ->groupBy('jenjang')
+                ->pluck('total', 'jenjang');
+
             foreach (['TK', 'SD', 'SMP'] as $j) {
-                $siswaPerJenjang[$j] = Siswa::aktif()->jenjang($j)->count();
+                $siswaPerJenjang[$j] = $counts[$j] ?? 0;
             }
         } else {
             $siswaPerJenjang[$jenjang] = $totalSiswa;
         }
 
-        // ── Pembayaran ───────────────────────────────────────────────
-        $pembayaranQuery = Pembayaran::query();
-        if ($jenjang) {
-            $pembayaranQuery->whereHas('siswa', fn($q) => $q->where('jenjang', $jenjang));
-        }
+        // ── Pembayaran (dibatasi tahun pelajaran aktif) ───────────────────────
+        $pembayaranQuery = Pembayaran::query()
+            ->when($tahunPelajaranId,
+                fn($q) => $q->where('tahun_pelajaran_id', $tahunPelajaranId),
+                fn($q) => $q->whereRaw('0 = 1')
+            )
+            ->when($jenjang,
+                fn($q) => $q->whereHas('siswa', fn($sq) => $sq->where('jenjang', $jenjang))
+            );
 
         $totalPemasukan    = (clone $pembayaranQuery)->sum('total_bayar');
         $pemasukanBulanIni = (clone $pembayaranQuery)
-            ->where('tanggal_bayar', 'like', $bulanIni . '%')
+            ->whereDate('tanggal_bayar', '>=', Carbon::parse($bulanIni . '-01')->startOfMonth())
+            ->whereDate('tanggal_bayar', '<=', Carbon::parse($bulanIni . '-01')->endOfMonth())
             ->sum('total_bayar');
 
-        // Transaksi hari ini
         $transaksiHariIni = (clone $pembayaranQuery)
             ->whereDate('tanggal_bayar', Carbon::today())
             ->count();
 
-        // Pembayaran terbaru (10 terakhir)
         $pembayaranTerbaru = (clone $pembayaranQuery)
-            ->with('siswa', 'user')
+            ->with(['siswa', 'user', 'pembayaranBulan'])
             ->latest('tanggal_bayar')
             ->take(10)
             ->get();
 
-        // ── Setoran ──────────────────────────────────────────────────
-        $setoranQuery = Setoran::query();
-        if ($jenjang) {
-            $setoranQuery->where('jenjang', $jenjang);
-        }
+        // ── Setoran ───────────────────────────────────────────────────────────
+        $setoranQuery = Setoran::query()
+            ->when($jenjang, fn($q) => $q->where('jenjang', $jenjang));
 
         $totalSetoran = (clone $setoranQuery)->count();
 
@@ -71,34 +89,43 @@ class DashboardController extends Controller
             ->take(8)
             ->get();
 
-        // Setoran bulan ini (untuk petugas)
         $setoranBulanIni = (clone $setoranQuery)
-            ->where('tanggal_setoran', 'like', $bulanIni . '%')
+            ->whereDate('tanggal_setoran', '>=', Carbon::parse($bulanIni . '-01')->startOfMonth())
+            ->whereDate('tanggal_setoran', '<=', Carbon::parse($bulanIni . '-01')->endOfMonth())
             ->count();
 
-        // ── Grafik ───────────────────────────────────────────────────
-        $grafikData = $this->getGrafikPemasukan($jenjang);
+        // ── Grafik ────────────────────────────────────────────────────────────
+        $grafikData = $this->getGrafikPemasukan($jenjang, $tahunPelajaranId, $tahunPelajaran);
 
-        // ── Siswa belum bayar ────────────────────────────────────────
-        $siswaBelumBayar = $this->getSiswaBelumBayar($bulanIni, $jenjang);
+        // ── Siswa belum bayar bulan ini ───────────────────────────────────────
+        // FIX: tidak lagi pakai whereJsonContains('bulan_bayar') yang sudah dihapus.
+        // Sekarang cek via tabel pembayaran_bulan.
+        $siswaBelumBayar = $this->getSiswaBelumBayar($bulanIni, $jenjang, $tahunPelajaranId);
 
-        // ── Pemasukan per jenjang (hanya admin yayasan) ──────────────
+        // ── Pemasukan per jenjang (admin yayasan) ─────────────────────────────
         $pemasukanPerJenjang = [];
-        if (!$jenjang) {
+        if (!$jenjang && $tahunPelajaranId) {
+            // 1 query grouped, bukan 3 query terpisah
+            $totals = Pembayaran::where('tahun_pelajaran_id', $tahunPelajaranId)
+                ->join('siswa', 'pembayaran.siswa_id', '=', 'siswa.id')
+                ->selectRaw('siswa.jenjang, SUM(pembayaran.total_bayar) as total')
+                ->groupBy('siswa.jenjang')
+                ->pluck('total', 'jenjang');
+
             foreach (['TK', 'SD', 'SMP'] as $j) {
-                $pemasukanPerJenjang[$j] = Pembayaran::whereHas(
-                    'siswa', fn($q) => $q->where('jenjang', $j)
-                )->sum('total_bayar');
+                $pemasukanPerJenjang[$j] = (float) ($totals[$j] ?? 0);
             }
         }
 
-        // ── Pembayaran belum disetor (untuk petugas) ─────────────────
-        $belumDisetorCount = 0;
+        // ── Belum disetor (petugas jenjang) ───────────────────────────────────
+        $belumDisetorCount   = 0;
         $belumDisetorNominal = 0;
         if ($jenjang) {
             $belumDisetor = Pembayaran::whereNull('setoran_id')
+                ->when($tahunPelajaranId, fn($q) => $q->where('tahun_pelajaran_id', $tahunPelajaranId))
                 ->whereHas('siswa', fn($q) => $q->where('jenjang', $jenjang))
-                ->get();
+                ->get(['total_bayar']);
+
             $belumDisetorCount   = $belumDisetor->count();
             $belumDisetorNominal = $belumDisetor->sum('total_bayar');
         }
@@ -118,38 +145,86 @@ class DashboardController extends Controller
             'siswaBelumBayar',
             'belumDisetorCount',
             'belumDisetorNominal',
+            'tahunPelajaran',
             'jenjang',
         ));
     }
 
-    private function getGrafikPemasukan(?string $jenjang): array
+    // ─── Private Helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Data grafik pemasukan Juli – Juni sesuai tahun pelajaran aktif.
+     *
+     * Tahun pelajaran aktif diambil dari $tahunPelajaran->nama yang
+     * berformat "YYYY/YYYY" (contoh: "2024/2025").
+     * Jika tidak ada tahun pelajaran aktif, fallback ke tahun ajaran
+     * berjalan berdasarkan bulan saat ini (≥ Juli → tahun ini, < Juli → tahun lalu).
+     */
+    private function getGrafikPemasukan(?string $jenjang, ?int $tahunPelajaranId, $tahunPelajaran = null): array
     {
         $namaBulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+        if ($tahunPelajaran && !empty($tahunPelajaran->nama)) {
+            $startYear = (int) substr($tahunPelajaran->nama, 0, 4);
+        } else {
+            $now       = Carbon::now();
+            $startYear = $now->month >= 7 ? $now->year : $now->year - 1;
+        }
+
+        $startDate = Carbon::create($startYear, 7, 1)->startOfMonth();
+        $endDate   = Carbon::create($startYear + 1, 6, 1)->endOfMonth();
+
+        // 1 query grouped by tahun+bulan, bukan 12 query terpisah
+        $rows = Pembayaran::query()
+            ->selectRaw('YEAR(tanggal_bayar) as thn, MONTH(tanggal_bayar) as bln, SUM(total_bayar) as total')
+            ->when($tahunPelajaranId, fn($q) => $q->where('tahun_pelajaran_id', $tahunPelajaranId))
+            ->when($jenjang, fn($q) => $q->whereHas('siswa', fn($sq) => $sq->where('jenjang', $jenjang)))
+            ->whereBetween('tanggal_bayar', [$startDate, $endDate])
+            ->groupByRaw('YEAR(tanggal_bayar), MONTH(tanggal_bayar)')
+            ->get()
+            ->keyBy(fn($r) => str_pad((string)$r->thn, 4, '0', STR_PAD_LEFT) . '-' . str_pad((string)$r->bln, 2, '0', STR_PAD_LEFT))
+            ->map(fn($r) => $r->total);
+
         $labels = [];
         $data   = [];
 
-        for ($i = 11; $i >= 0; $i--) {
-            $tanggal  = Carbon::now()->subMonths($i);
-            $labels[] = $namaBulan[$tanggal->month - 1] . ' ' . substr($tanggal->year, 2);
-
-            $query = Pembayaran::where('tanggal_bayar', 'like', $tanggal->format('Y-m') . '%');
-            if ($jenjang) {
-                $query->whereHas('siswa', fn($q) => $q->where('jenjang', $jenjang));
-            }
-            $data[] = (float) $query->sum('total_bayar');
+        for ($i = 0; $i < 12; $i++) {
+            $tanggal  = $startDate->copy()->addMonths($i);
+            $key      = $tanggal->format('Y-m');
+            $labels[] = $namaBulan[$tanggal->month - 1] . ' ' . substr((string) $tanggal->year, 2);
+            $data[]   = (float) ($rows[$key] ?? 0);
         }
 
         return ['labels' => $labels, 'data' => $data];
     }
 
-    private function getSiswaBelumBayar(string $bulan, ?string $jenjang)
+    /**
+     * Daftar siswa aktif yang belum membayar untuk bulan tertentu.
+     *
+     * FIX: kolom bulan_bayar (JSON) sudah dihapus dari tabel pembayaran.
+     * Sekarang cek via tabel pembayaran_bulan — siswa belum bayar =
+     * siswa yang TIDAK punya record di pembayaran_bulan untuk bulan & tahun pelajaran ini.
+     *
+     * FIX: $s->kelas tidak lagi ada di model Siswa — kelas kini di tabel siswa_kelas.
+     * Eager-load kelasAktif.kelas agar blade bisa pakai $s->kelasAktif?->kelas?->nama.
+     */
+    private function getSiswaBelumBayar(string $bulan, ?string $jenjang, ?int $tahunPelajaranId)
     {
+        if (!$tahunPelajaranId) {
+            return collect(); // tidak ada tahun aktif → tidak ada data
+        }
+
         return Siswa::aktif()
+            ->with('kelasAktif.kelas')
             ->when($jenjang, fn($q) => $q->jenjang($jenjang))
-            ->whereDoesntHave('pembayaran', function ($q) use ($bulan) {
-                $q->whereJsonContains('bulan_bayar', $bulan);
-            })
-            ->orderBy('kelas')
+            ->whereHas('kelasAktif')  // hanya siswa terdaftar di tahun aktif
+            ->whereDoesntHave('pembayaranBulan', fn($q) =>
+                $q->where('bulan', $bulan)
+                  ->whereHas('pembayaran', fn($p) =>
+                      $p->where('tahun_pelajaran_id', $tahunPelajaranId)
+                  )
+            )
+            ->orderBy('jenjang')
             ->orderBy('nama')
             ->get();
     }

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'EduPay') }} — @yield('title', 'Dashboard')</title>
+    <title>{{ config('app.name', 'e-Scrido') }} — @yield('title', 'Dashboard')</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -842,103 +842,8 @@
 </head>
 <body>
 
-<!-- ================================================================
-     SIDEBAR BACKDROP (mobile)
-================================================================ -->
-<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-
-<!-- ================================================================
-     SIDEBAR
-================================================================ -->
-<nav class="sidebar" id="sidebar">
-
-    <div class="sidebar-brand">
-        <div class="brand-logo">
-            <i class="bi bi-mortarboard-fill"></i>
-        </div>
-        <div class="brand-text">
-            <div class="brand-name">{{ config('app.name', 'EduPay') }}</div>
-            <div class="brand-tagline">Sistem Pembayaran Sekolah</div>
-        </div>
-    </div>
-
-    <div class="sidebar-nav">
-
-        <div class="nav-section-label">Utama</div>
-        <a href="{{ route('dashboard') }}"
-           class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-            <span class="nav-icon-wrap"><i class="bi bi-house-fill"></i></span>
-            Dashboard
-        </a>
-
-        <div class="nav-section-label">Data Master</div>
-        <a href="{{ route('siswa.index') }}"
-           class="nav-link {{ request()->routeIs('siswa.*') ? 'active' : '' }}">
-            <span class="nav-icon-wrap"><i class="bi bi-people-fill"></i></span>
-            Data Siswa
-        </a>
-
-        <div class="nav-section-label">Transaksi</div>
-        <a href="{{ route('pembayaran.index') }}"
-           class="nav-link {{ request()->routeIs('pembayaran.*') ? 'active' : '' }}">
-            <span class="nav-icon-wrap"><i class="bi bi-cash-coin"></i></span>
-            Pembayaran
-        </a>
-        <a href="{{ route('setoran.index') }}"
-           class="nav-link {{ request()->routeIs('setoran.*') ? 'active' : '' }}">
-            <span class="nav-icon-wrap"><i class="bi bi-wallet2"></i></span>
-            Setoran
-        </a>
-
-        <div class="nav-section-label">Cetak & Laporan</div>
-        <a href="{{ route('cetak.index') }}"
-           class="nav-link {{ request()->routeIs('cetak.*') ? 'active' : '' }}">
-            <span class="nav-icon-wrap"><i class="bi bi-printer-fill"></i></span>
-            Cetak Kartu
-        </a>
-        <a href="{{ route('laporan.index') }}"
-           class="nav-link {{ request()->routeIs('laporan.*') ? 'active' : '' }}">
-            <span class="nav-icon-wrap"><i class="bi bi-bar-chart-fill"></i></span>
-            Laporan
-        </a>
-
-        @if (auth()->user()->isAdminYayasan())
-        <div class="nav-section-label">Admin</div>
-        <a href="{{ route('admin.users.index') }}"
-           class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
-            <span class="nav-icon-wrap"><i class="bi bi-person-gear"></i></span>
-            Kelola User
-        </a>
-        @endif
-
-        <a href="{{ route('setting.index') }}"
-           class="nav-link {{ request()->routeIs('setting.*') ? 'active' : '' }}"
-           style="margin-top:.5rem">
-            <span class="nav-icon-wrap"><i class="bi bi-gear-fill"></i></span>
-            Pengaturan
-        </a>
-
-    </div>
-
-    <div class="sidebar-footer">
-        <div class="user-card">
-            <div class="user-avatar">
-                {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
-            </div>
-            <div class="user-details">
-                <div class="user-name">{{ auth()->user()->name }}</div>
-                <div class="user-role-tag">{{ auth()->user()->role_label }}</div>
-            </div>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="btn-logout" title="Keluar">
-                    <i class="bi bi-box-arrow-right"></i>
-                </button>
-            </form>
-        </div>
-    </div>
-
-</nav>
+{{-- ── Sidebar (backdrop + nav) ─────────────────────────────── --}}
+@include('layouts.navigation')
 
 <!-- ================================================================
      MAIN CONTENT

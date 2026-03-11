@@ -14,9 +14,16 @@
         <h4 class="fw-bold mb-1" style="font-family:'Sora',sans-serif;color:var(--ink)">
             {{ $setoran->kode_setoran }}
         </h4>
-        <p class="mb-0 d-flex align-items-center gap-2" style="font-size:.85rem;color:var(--ink-muted)">
+        <p class="mb-0 d-flex align-items-center gap-2 flex-wrap" style="font-size:.85rem;color:var(--ink-muted)">
             <span class="badge-{{ $setoran->jenjang }}">{{ $setoran->jenjang }}</span>
             {{ $setoran->tanggal_setoran->isoFormat('dddd, D MMMM Y') }}
+            @if($setoran->tahunPelajaran)
+                <span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;font-weight:600;
+                             padding:.18rem .6rem;border-radius:999px;
+                             background:#d1fae5;color:#065F46;border:1px solid #6ee7b7">
+                    <i class="bi bi-calendar-check"></i>T.A. {{ $setoran->tahunPelajaran->nama }}
+                </span>
+            @endif
         </p>
     </div>
     <div class="d-flex gap-2">
@@ -65,6 +72,17 @@
                         <td style="color:var(--ink-muted)">Petugas</td>
                         <td class="fw-600" style="color:var(--ink)">{{ $setoran->user->name ?? '—' }}</td>
                     </tr>
+                    @if($setoran->tahunPelajaran)
+                    <tr>
+                        <td style="color:var(--ink-muted)">Tahun Ajaran</td>
+                        <td>
+                            <span style="font-size:.78rem;font-weight:600;padding:.15rem .5rem;border-radius:999px;
+                                         background:#d1fae5;color:#065F46;border:1px solid #6ee7b7">
+                                {{ $setoran->tahunPelajaran->nama }}
+                            </span>
+                        </td>
+                    </tr>
+                    @endif
                     @if($setoran->keterangan)
                     <tr>
                         <td style="color:var(--ink-muted)">Keterangan</td>
@@ -132,7 +150,7 @@
                     </strong>
                 </span>
             </div>
-            <div class="table-responsive">
+            <div class="table-responsive" style="max-height:540px;overflow:auto">
                 <table class="table mb-0" style="font-size:.82rem">
                     <thead>
                         <tr>
@@ -165,13 +183,13 @@
                                 </div>
                             </td>
                             <td class="fw-600" style="color:var(--ink)">{{ $p->siswa->nama ?? '—' }}</td>
-                            <td style="color:var(--ink-soft)">{{ $p->siswa->kelas ?? '—' }}</td>
+                            <td style="color:var(--ink-soft)">{{ $p->siswaKelas?->kelas?->nama ?? '—' }}</td>
                             <td style="color:var(--ink-soft)">
                                 {{ $p->bulan_label }}
                                 <div style="font-size:.72rem;color:var(--ink-faint)">{{ $p->jumlah_bulan }} bulan</div>
                             </td>
                             <td class="text-end" style="color:var(--ink-soft)">
-                                Rp {{ number_format(($p->nominal_per_bulan - ($p->nominal_donator / $p->jumlah_bulan)), 0, ',', '.') }}
+                                Rp {{ number_format((float)$p->total_bayar - (float)$p->nominal_mamin, 0, ',', '.') }}
                             </td>
                             @if($setoran->jenjang === 'TK')
                             <td class="text-end" style="color:#6366f1">

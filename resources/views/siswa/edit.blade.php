@@ -10,15 +10,19 @@
 
 @section('content')
 
+@php
+    // Ambil record siswa_kelas untuk tahun pelajaran aktif (sudah di-load controller)
+    $ka = $siswa->kelasAktif;
+@endphp
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="fw-bold mb-1" style="color: var(--navy); font-family:'Sora',sans-serif;">Edit Data Siswa</h4>
         <p class="mb-0" style="color:var(--ink-muted);font-size:.85rem;">
             <code style="font-size:.8rem;color:var(--navy);">{{ $siswa->id_siswa }}</code>
             <span class="mx-1">—</span>
-            @php $jClass = 'badge-' . strtolower($siswa->jenjang); @endphp
-            <span class="{{ $jClass }}">{{ $siswa->jenjang }}</span>
-            Kelas {{ $siswa->kelas }}
+            <span class="badge-{{ strtolower($siswa->jenjang) }}">{{ $siswa->jenjang }}</span>
+            @if($ka?->kelas) Kelas {{ $ka->kelas->nama }} @endif
         </p>
     </div>
     <a href="{{ route('siswa.show', $siswa) }}" class="btn btn-outline-secondary btn-sm">
@@ -46,8 +50,7 @@
 
                 <div class="col-md-4">
                     <label class="form-label">ID Siswa</label>
-                    <input type="text"
-                           class="form-control"
+                    <input type="text" class="form-control"
                            style="background:var(--bg);color:var(--ink-muted);"
                            value="{{ $siswa->id_siswa }}" readonly>
                     <div class="form-text">ID tidak dapat diubah.</div>
@@ -80,15 +83,6 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label">Kelas <span class="text-danger">*</span></label>
-                    <select name="kelas" id="selectKelas"
-                            class="form-select @error('kelas') is-invalid @enderror" required>
-                        <option value="">— Pilih Kelas —</option>
-                    </select>
-                    @error('kelas')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="col-md-4">
                     <label class="form-label">Status</label>
                     <select name="status" id="selectStatus" class="form-select">
                         <option value="aktif"       {{ old('status', $siswa->status) == 'aktif'       ? 'selected' : '' }}>✅ Aktif</option>
@@ -96,35 +90,84 @@
                     </select>
                 </div>
 
+                {{-- No HP Wali --}}
+                <div class="col-md-4">
+                    <label class="form-label">
+                        No HP Wali
+                        <small class="fw-normal" style="color:var(--ink-muted);">(Opsional)</small>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-whatsapp" style="color:#25D366;"></i>
+                        </span>
+                        <input type="text" name="no_hp_wali"
+                               value="{{ old('no_hp_wali', $siswa->no_hp_wali) }}"
+                               class="form-control @error('no_hp_wali') is-invalid @enderror"
+                               placeholder="08xxxxxxxxxx">
+                    </div>
+                    @error('no_hp_wali')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <div class="form-text">Digunakan untuk notifikasi WhatsApp.</div>
+                </div>
+
             </div>
         </div>
     </div>
 
-    {{-- ── Nominal Pembayaran ────────────────────────────────────── --}}
+    {{-- ── SPP Tahun Pelajaran Aktif (SiswaKelas) ──────────────────── --}}
+    @if($tahunPelajaran)
     <div class="card mb-3">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-bold" style="color:var(--navy);">
-                <i class="bi bi-cash-coin me-2"></i>Nominal Pembayaran
+                <i class="bi bi-cash-coin me-2"></i>SPP & Kelas
+                <span class="badge ms-2"
+                      style="background:var(--blue-pale);color:var(--blue-dark);
+                             border:1px solid var(--blue-light);font-size:.72rem;font-weight:600;">
+                    T.A. {{ $tahunPelajaran->nama }}
+                </span>
             </h6>
+            @if(!$ka)
+            <span class="badge"
+                  style="background:#fff3cd;color:#856404;border:1px solid #ffc107;font-size:.72rem;">
+                <i class="bi bi-info-circle me-1"></i>Belum ada data kelas untuk tahun ini
+            </span>
+            @endif
         </div>
         <div class="card-body">
+            <input type="hidden" name="tahun_pelajaran_id" value="{{ $tahunPelajaran->id }}">
+
             <div class="row g-3">
 
-                <div class="col-md-4">
+                {{-- Kelas --}}
+                <div class="col-md-6">
+                    <label class="form-label">
+                        Kelas <span class="text-danger">*</span>
+                    </label>
+                    <select name="kelas_id" id="selectKelas"
+                            class="form-select @error('kelas_id') is-invalid @enderror" required>
+                        <option value="">— Pilih Kelas —</option>
+                    </select>
+                    @error('kelas_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
+                {{-- SPP --}}
+                <div class="col-md-6">
                     <label class="form-label">SPP / Bulan <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <span class="input-group-text">Rp</span>
-                        <input type="number" name="nominal_pembayaran" id="inSPP"
-                               value="{{ old('nominal_pembayaran', (int) $siswa->nominal_pembayaran) }}"
-                               class="form-control @error('nominal_pembayaran') is-invalid @enderror"
-                               min="0" step="1000" required>
+                        <input type="number" name="nominal_spp" id="inSPP"
+                               value="{{ old('nominal_spp', (int) ($ka->nominal_spp ?? 0)) }}"
+                               class="form-control @error('nominal_spp') is-invalid @enderror"
+                               min="0" step="1000">
                     </div>
-                    @error('nominal_pembayaran')
+                    @error('nominal_spp')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                     @enderror
                 </div>
 
-                <div class="col-md-4">
+                {{-- Donatur --}}
+                <div class="col-md-6">
                     <label class="form-label">
                         Donatur / Bulan
                         <small style="color:var(--ink-muted);font-weight:400;">(pengurang)</small>
@@ -132,12 +175,78 @@
                     <div class="input-group">
                         <span class="input-group-text">Rp</span>
                         <input type="number" name="nominal_donator" id="inDonatur"
-                               value="{{ old('nominal_donator', (int) $siswa->nominal_donator) }}"
+                               value="{{ old('nominal_donator', (int) ($ka->nominal_donator ?? 0)) }}"
                                class="form-control" min="0" step="1000">
                     </div>
                 </div>
 
-                <div class="col-md-4" id="rowMamin"
+                {{-- ── Preview Kredit Otomatis ── --}}
+                @if($jumlahBulanDibayar > 0)
+                <div class="col-12">
+                    <div class="rounded-3 p-3" id="panelKreditOtomatis"
+                         style="background:#fffbeb;border:1px solid #fde68a;display:none;">
+                        <div class="d-flex align-items-start gap-2 mb-2">
+                            <i class="bi bi-stars flex-shrink-0 mt-1" style="color:#d97706;"></i>
+                            <div>
+                                <div class="fw-bold" style="color:#92400e;font-size:.85rem;">
+                                    Kredit Otomatis Akan Digenerate
+                                </div>
+                                <div class="text-muted" style="font-size:.78rem;">
+                                    Donatur naik → selisih dikembalikan sebagai kredit untuk
+                                    <strong>{{ $jumlahBulanDibayar }} bulan</strong> yang sudah dibayar di T.A. ini.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="rounded-2 p-2" style="background:rgba(255,255,255,.7);font-size:.82rem;">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span style="color:var(--ink-muted);">Donatur lama:</span>
+                                <span>Rp <span id="kreditDonaturLama">{{ number_format($donaturSekarang, 0, ',', '.') }}</span>/bln</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span style="color:var(--ink-muted);">Donatur baru:</span>
+                                <span>Rp <span id="kreditDonaturBaru">0</span>/bln</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span style="color:var(--ink-muted);">Selisih / bulan:</span>
+                                <span class="fw-bold" style="color:#059669;">+Rp <span id="kreditSelisih">0</span></span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span style="color:var(--ink-muted);">× Bulan sudah dibayar:</span>
+                                <span>{{ $jumlahBulanDibayar }} bulan</span>
+                            </div>
+                            <hr class="my-1" style="border-color:#fde68a;">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold" style="color:#92400e;">Total kredit:</span>
+                                <span class="fw-bold" style="color:#059669;font-size:.95rem;">
+                                    Rp <span id="kreditTotal">0</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mt-2" style="font-size:.72rem;color:#92400e;">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Kredit ini akan otomatis dipotong saat siswa melakukan pembayaran berikutnya.
+                        </div>
+                    </div>
+
+                    {{-- Panel info jika donatur turun --}}
+                    <div class="rounded-3 p-2 mt-1" id="panelDonaturTurun"
+                         style="background:#fff1f2;border:1px solid #fecdd3;font-size:.78rem;color:#be123c;display:none;">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Donatur diturunkan. Tidak ada kredit otomatis — hanya berlaku untuk pembayaran ke depan.
+                    </div>
+                </div>
+                @else
+                <div class="col-12">
+                    <div class="rounded-3 p-2" style="background:var(--bg);border:1px solid var(--border);font-size:.78rem;color:var(--ink-muted);">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Kredit otomatis tidak berlaku — siswa belum memiliki pembayaran di tahun pelajaran ini.
+                        Perubahan donatur hanya memengaruhi tagihan ke depan.
+                    </div>
+                </div>
+                @endif
+
+                {{-- Mamin (hanya TK) --}}
+                <div class="col-md-6" id="rowMamin"
                      style="{{ old('jenjang', $siswa->jenjang) === 'TK' ? '' : 'display:none' }}">
                     <label class="form-label">
                         Mamin / Bulan
@@ -148,15 +257,14 @@
                     <div class="input-group">
                         <span class="input-group-text">Rp</span>
                         <input type="number" name="nominal_mamin" id="inMamin"
-                               value="{{ old('nominal_mamin', (int) $siswa->nominal_mamin) }}"
+                               value="{{ old('nominal_mamin', (int) ($ka->nominal_mamin ?? 0)) }}"
                                class="form-control" min="0" step="1000">
                     </div>
                 </div>
 
                 {{-- Preview tagihan --}}
                 <div class="col-12">
-                    <div class="rounded-3 p-3"
-                         style="background:#f0fdf4; border:1px solid #bbf7d0;">
+                    <div class="rounded-3 p-3" style="background:#f0fdf4; border:1px solid #bbf7d0;">
                         <div class="d-flex align-items-center gap-2 flex-wrap" style="font-size:.85rem;">
                             <span style="color:var(--ink-muted);">SPP:</span>
                             <strong id="prevSPP" style="color:var(--navy);">Rp 0</strong>
@@ -176,7 +284,8 @@
                         </div>
                         <div class="mt-1" style="font-size:.72rem; color:#166534;">
                             <i class="bi bi-info-circle me-1"></i>
-                            Rumus: (SPP − Donatur + Mamin) × jumlah bulan
+                            Perubahan hanya berlaku untuk T.A. {{ $tahunPelajaran->nama }}.
+                            Data tahun sebelumnya tetap tersimpan.
                         </div>
                     </div>
                 </div>
@@ -184,6 +293,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     {{-- ── Tanggal & Keterangan ─────────────────────────────────── --}}
     <div class="card mb-4">
@@ -275,63 +385,106 @@
 
 @push('scripts')
 <script>
-const kelasByJenjang = {
-    TK:  ['KB', 'OA', 'OB'],
-    SD:  ['I', 'II', 'III', 'IV', 'V', 'VI'],
-    SMP: ['VII', 'VIII', 'IX'],
-};
-const currentKelas   = "{{ old('kelas', $siswa->kelas) }}";
+const semuaKelas     = @json($semuaKelas);
+const currentKelasId = "{{ old('kelas_id', $ka?->kelas_id ?? '') }}";
 const currentJenjang = "{{ old('jenjang', $siswa->jenjang) }}";
 
-function renderKelas(jenjang, selected = '') {
+// Data kredit otomatis dari controller
+const donaturLama        = {{ $donaturSekarang }};
+const jumlahBulanDibayar = {{ $jumlahBulanDibayar }};
+
+function renderKelas(jenjang, selectedId = '') {
     const sel = document.getElementById('selectKelas');
+    if (!sel) return;
     sel.innerHTML = '<option value="">— Pilih Kelas —</option>';
-    (kelasByJenjang[jenjang] || []).forEach(k => {
-        sel.appendChild(new Option('Kelas ' + k, k, false, k === selected));
+    (semuaKelas[jenjang] || []).forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k.id;
+        opt.textContent = k.nama;
+        if (String(k.id) === String(selectedId)) opt.selected = true;
+        sel.appendChild(opt);
     });
 }
 
 function toggleMamin(jenjang) {
     const isTK = jenjang === 'TK';
-    document.getElementById('rowMamin').style.display      = isTK ? '' : 'none';
-    document.getElementById('prevMaminWrap').style.display = isTK ? '' : 'none';
-    if (!isTK) document.getElementById('inMamin').value   = 0;
+    const rowMamin      = document.getElementById('rowMamin');
+    const prevMaminWrap = document.getElementById('prevMaminWrap');
+    if (rowMamin)      rowMamin.style.display      = isTK ? '' : 'none';
+    if (prevMaminWrap) prevMaminWrap.style.display  = isTK ? '' : 'none';
+    if (!isTK) { const el = document.getElementById('inMamin'); if (el) el.value = 0; }
     updatePreview();
 }
 
 function updatePreview() {
-    const spp   = parseFloat(document.getElementById('inSPP').value)    || 0;
-    const donor = parseFloat(document.getElementById('inDonatur').value) || 0;
-    const mamin = parseFloat(document.getElementById('inMamin').value)   || 0;
-    const isTK  = document.getElementById('selectJenjang').value === 'TK';
+    const spp   = parseFloat(document.getElementById('inSPP')?.value)    || 0;
+    const donor = parseFloat(document.getElementById('inDonatur')?.value) || 0;
+    const mamin = parseFloat(document.getElementById('inMamin')?.value)   || 0;
+    const isTK  = (document.getElementById('selectJenjang')?.value || currentJenjang) === 'TK';
     const total = spp - donor + (isTK ? mamin : 0);
+    const fmt   = n => new Intl.NumberFormat('id-ID').format(Math.round(n));
 
     document.getElementById('prevSPP').textContent     = 'Rp ' + fmt(spp);
     document.getElementById('prevDonatur').textContent = 'Rp ' + fmt(donor);
-    document.getElementById('prevMamin').textContent   = 'Rp ' + fmt(mamin);
-    document.getElementById('prevTotal').textContent   = 'Rp ' + fmt(total);
+    const pm = document.getElementById('prevMamin');
+    if (pm) pm.textContent = 'Rp ' + fmt(mamin);
+    document.getElementById('prevTotal').textContent = 'Rp ' + fmt(total);
+
+    // ── Update preview kredit otomatis ──────────────────────────────
+    if (jumlahBulanDibayar > 0) {
+        updatePreviewKredit(donor);
+    }
 }
 
-function fmt(n) {
-    return new Intl.NumberFormat('id-ID').format(Math.round(n));
+function updatePreviewKredit(donaturBaru) {
+    const fmt     = n => new Intl.NumberFormat('id-ID').format(Math.round(n));
+    const selisih = donaturBaru - donaturLama;
+
+    const panelNaik  = document.getElementById('panelKreditOtomatis');
+    const panelTurun = document.getElementById('panelDonaturTurun');
+
+    if (!panelNaik) return;
+
+    if (selisih > 0) {
+        // Donatur naik → tampilkan preview kredit
+        const total = selisih * jumlahBulanDibayar;
+
+        document.getElementById('kreditDonaturLama').textContent = fmt(donaturLama);
+        document.getElementById('kreditDonaturBaru').textContent = fmt(donaturBaru);
+        document.getElementById('kreditSelisih').textContent     = fmt(selisih);
+        document.getElementById('kreditTotal').textContent       = fmt(total);
+
+        panelNaik.style.display  = '';
+        if (panelTurun) panelTurun.style.display = 'none';
+
+    } else if (selisih < 0) {
+        // Donatur turun → tampilkan peringatan
+        panelNaik.style.display  = 'none';
+        if (panelTurun) panelTurun.style.display = '';
+
+    } else {
+        // Tidak ada perubahan
+        panelNaik.style.display  = 'none';
+        if (panelTurun) panelTurun.style.display = 'none';
+    }
 }
 
-document.getElementById('selectJenjang').addEventListener('change', function () {
+document.getElementById('selectJenjang')?.addEventListener('change', function () {
     renderKelas(this.value);
     toggleMamin(this.value);
 });
 
-document.getElementById('selectStatus').addEventListener('change', function () {
+document.getElementById('selectStatus')?.addEventListener('change', function () {
     if (this.value === 'aktif') {
         document.getElementById('inputTanggalKeluar').value = '';
     }
 });
 
 ['inSPP', 'inDonatur', 'inMamin'].forEach(id => {
-    document.getElementById(id).addEventListener('input', updatePreview);
+    document.getElementById(id)?.addEventListener('input', updatePreview);
 });
 
-renderKelas(currentJenjang, currentKelas);
+renderKelas(currentJenjang, currentKelasId);
 toggleMamin(currentJenjang);
 updatePreview();
 </script>

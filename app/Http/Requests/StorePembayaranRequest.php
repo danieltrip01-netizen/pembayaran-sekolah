@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Auth;
 
 class StorePembayaranRequest extends FormRequest
 {
-    // ✅ FIX: Ganti auth()->check() dengan Auth::check()
     public function authorize(): bool
     {
         return Auth::check();
@@ -16,12 +15,13 @@ class StorePembayaranRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'siswa_id'        => 'required|exists:siswa,id',
-            'tanggal_bayar'   => 'required|date',
-            'bulan_bayar'     => 'required|array|min:1',
-            'bulan_bayar.*'   => 'required|string|regex:/^\d{4}-\d{2}$/',
-            'nominal_donator' => 'nullable|numeric|min:0',
-            'keterangan'      => 'nullable|string|max:255',
+            'siswa_id'        => ['required', 'exists:siswa,id'],
+            'tanggal_bayar'   => ['required', 'date'],
+            'bulan_bayar'     => ['required', 'array', 'min:1'],
+            'bulan_bayar.*'   => ['required', 'string', 'regex:/^\d{4}-\d{2}$/'],
+            // nullable: jika tidak dikirim, controller fallback ke nominal_donator di siswa_kelas
+            'nominal_donator' => ['nullable', 'numeric', 'min:0'],
+            'keterangan'      => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -31,9 +31,12 @@ class StorePembayaranRequest extends FormRequest
             'siswa_id.required'      => 'Siswa wajib dipilih.',
             'siswa_id.exists'        => 'Siswa tidak ditemukan.',
             'tanggal_bayar.required' => 'Tanggal bayar wajib diisi.',
+            'tanggal_bayar.date'     => 'Format tanggal tidak valid.',
             'bulan_bayar.required'   => 'Pilih minimal satu bulan pembayaran.',
             'bulan_bayar.min'        => 'Pilih minimal satu bulan pembayaran.',
-            'bulan_bayar.*.regex'    => 'Format bulan tidak valid.',
+            'bulan_bayar.*.regex'    => 'Format bulan tidak valid (harus YYYY-MM).',
+            'nominal_donator.numeric'=> 'Nominal donatur harus berupa angka.',
+            'nominal_donator.min'    => 'Nominal donatur tidak boleh negatif.',
         ];
     }
 }

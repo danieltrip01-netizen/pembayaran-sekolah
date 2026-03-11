@@ -4,15 +4,30 @@
 
 @section('content')
 
+@php
+    // Cari label tahun pelajaran yang sedang dipilih
+    $tahunDipilih = $tahunPelajaranList->firstWhere('id', $filter['tahun_pelajaran_id']);
+    $isDefaultTahun = $tahunAktif && (string)$filter['tahun_pelajaran_id'] === (string)$tahunAktif->id;
+@endphp
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="fw-bold mb-0" style="color: var(--primary)">Laporan Pembayaran</h4>
-        <p class="text-muted small mb-0">
-            Rekap data pembayaran
+        <p class="text-muted small mb-0 d-flex align-items-center gap-2">
+            {{-- Tahun pelajaran --}}
+            @if($tahunDipilih)
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                    <i class="bi bi-calendar-range me-1"></i>{{ $tahunDipilih->nama }}
+                </span>
+                @if($isDefaultTahun)
+                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem">Tahun Aktif</span>
+                @endif
+            @endif
+            {{-- Jenjang --}}
             @if(!empty($filter['jenjang']))
-                — <span class="badge badge-{{ strtolower($filter['jenjang']) }}">{{ $filter['jenjang'] }}</span>
+                <span class="badge badge-{{ strtolower($filter['jenjang']) }}">{{ $filter['jenjang'] }}</span>
             @else
-                — <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Semua Jenjang</span>
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Semua Jenjang</span>
             @endif
         </p>
     </div>
@@ -33,7 +48,21 @@
     <div class="card-body py-3">
         <form method="GET" class="row g-2 align-items-end">
 
-            {{-- Jenjang: hanya tampil jika admin yayasan (jenjangOptions > 1) --}}
+            {{-- ── Tahun Pelajaran ─────────────────────────────────────────── --}}
+            <div class="col-md-2">
+                <label class="form-label small fw-600 mb-1">Tahun Pelajaran</label>
+                <select name="tahun_pelajaran_id" class="form-select form-select-sm">
+                    <option value="">Semua Tahun</option>
+                    @foreach($tahunPelajaranList as $tp)
+                    <option value="{{ $tp->id }}"
+                        {{ (string)($filter['tahun_pelajaran_id'] ?? '') === (string)$tp->id ? 'selected' : '' }}>
+                        {{ $tp->nama }}{{ $tp->is_active ? ' ★' : '' }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- ── Jenjang ─────────────────────────────────────────────────── --}}
             @if(count($jenjangOptions) > 1)
             <div class="col-md-2">
                 <label class="form-label small fw-600 mb-1">Jenjang</label>
@@ -47,10 +76,10 @@
                 </select>
             </div>
             @else
-            {{-- Admin jenjang: tampilkan label saja, kirim via hidden --}}
             <input type="hidden" name="jenjang" value="{{ $filter['jenjang'] }}">
             @endif
 
+            {{-- ── Bulan Transaksi ─────────────────────────────────────────── --}}
             <div class="col-md-2">
                 <label class="form-label small fw-600 mb-1">Bulan</label>
                 <input type="month" name="bulan"
@@ -59,11 +88,12 @@
                        placeholder="Semua bulan">
             </div>
 
+            {{-- ── Kelas ───────────────────────────────────────────────────── --}}
             <div class="col-md-2">
                 <label class="form-label small fw-600 mb-1">Kelas</label>
-                <select name="kelas" class="form-select form-select-sm">
+                <select name="kelas" id="selectKelas" class="form-select form-select-sm">
                     <option value="">Semua Kelas</option>
-                    @foreach(['A','B','I','II','III','IV','V','VI','VII','VIII','IX'] as $k)
+                    @foreach($kelasOptions as $k)
                     <option value="{{ $k }}" {{ ($filter['kelas'] ?? '') === $k ? 'selected' : '' }}>
                         Kelas {{ $k }}
                     </option>
@@ -71,20 +101,7 @@
                 </select>
             </div>
 
-            <div class="col-md-2">
-                <label class="form-label small fw-600 mb-1">Tanggal Dari</label>
-                <input type="date" name="tanggal_dari"
-                       value="{{ $filter['tanggal_dari'] ?? '' }}"
-                       class="form-control form-control-sm">
-            </div>
-
-            <div class="col-md-2">
-                <label class="form-label small fw-600 mb-1">Tanggal Sampai</label>
-                <input type="date" name="tanggal_sampai"
-                       value="{{ $filter['tanggal_sampai'] ?? '' }}"
-                       class="form-control form-control-sm">
-            </div>
-
+            {{-- ── Tombol ──────────────────────────────────────────────────── --}}
             <div class="col-md-2 d-flex gap-1">
                 <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
                     <i class="bi bi-search me-1"></i>Tampilkan
@@ -94,30 +111,10 @@
                     <i class="bi bi-x"></i>
                 </a>
             </div>
-
         </form>
     </div>
 </div>
 
-{{-- Info filter aktif --}}
-@php
-    $filterAktif = array_filter([
-        $filter['jenjang']        ? 'Jenjang: '  . $filter['jenjang']                     : null,
-        $filter['bulan']          ? 'Bulan: '    . $filter['bulan']                        : null,
-        $filter['kelas']          ? 'Kelas: '    . $filter['kelas']                        : null,
-        $filter['tanggal_dari']   ? 'Dari: '     . $filter['tanggal_dari']                 : null,
-        $filter['tanggal_sampai'] ? 'Sampai: '   . $filter['tanggal_sampai']               : null,
-    ]);
-@endphp
-@if(!empty($filterAktif))
-<div class="alert alert-info alert-sm border-0 py-2 px-3 mb-3 rounded-3 d-flex align-items-center gap-2" style="background:#eff6ff">
-    <i class="bi bi-funnel-fill text-primary small"></i>
-    <span class="small">Filter aktif: {{ implode(' · ', $filterAktif) }}</span>
-    <a href="{{ route('laporan.index') }}" class="ms-auto small text-decoration-none text-danger">
-        <i class="bi bi-x me-1"></i>Hapus filter
-    </a>
-</div>
-@endif
 
 {{-- Rekap Cards --}}
 <div class="row g-3 mb-3">
@@ -179,18 +176,16 @@
         <div class="card border-0 shadow-sm" style="border-left:4px solid {{ $js['color'] }} !important">
             <div class="card-body py-3">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="badge rounded-pill px-3"
+                    <span class="badge rounded-pill px-2"
                           style="background:{{ $js['bg'] }};color:{{ $js['color'] }};border:1px solid {{ $js['border'] }}">
                         {{ $j }}
                     </span>
-                    <span class="small text-muted">{{ $grp->count() }} transaksi</span>
+                    <small class="text-muted">{{ $grp->pluck('siswa_id')->unique()->count() }} siswa</small>
                 </div>
                 <div class="fw-bold" style="color:{{ $js['color'] }}">
                     Rp {{ number_format($grp->sum('total_bayar'), 0, ',', '.') }}
                 </div>
-                <div class="text-muted small">
-                    {{ $grp->pluck('siswa_id')->unique()->count() }} siswa
-                </div>
+                <div class="text-muted" style="font-size:.72rem">{{ $grp->count() }} transaksi</div>
             </div>
         </div>
     </div>
@@ -226,7 +221,6 @@
                     @if(count($jenjangOptions) > 1 && empty($filter['jenjang']))
                     <td>
                         @php
-                            // Cari jenjang dominan di kelas ini
                             $jKelas = $pembayaran->filter(fn($p) => ($p->siswa->kelas ?? '-') === $kelas)
                                         ->groupBy(fn($p) => $p->siswa->jenjang ?? '-')
                                         ->keys()->first() ?? '-';
@@ -271,6 +265,11 @@
             </span>
             @endif
         </h6>
+        @if($tahunDipilih)
+        <small class="text-muted">
+            <i class="bi bi-calendar-range me-1"></i>{{ $tahunDipilih->nama }}
+        </small>
+        @endif
     </div>
     <div class="table-responsive">
         <table class="table mb-0" style="font-size:.82rem">
@@ -304,7 +303,8 @@
                             {{ $p->siswa->nama ?? '-' }}
                         </a>
                     </td>
-                    <td>{{ $p->siswa->kelas ?? '-' }}</td>
+                    {{-- FIX: filter siswaKelas berdasarkan tahun_pelajaran_id yang aktif/dipilih --}}
+                    <td>{{ $p->siswa?->siswaKelas->firstWhere('tahun_pelajaran_id', $filter['tahun_pelajaran_id'])?->kelas?->nama ?? '-' }}</td>
                     <td>
                         <span class="badge rounded-pill px-2"
                               style="background:{{ $js3['bg'] }};color:{{ $js3['color'] }};border:1px solid {{ $js3['border'] }};font-size:.65rem">
@@ -340,6 +340,9 @@
                         <div class="small">
                             @if(!empty($filterAktif))
                                 Coba ubah atau reset filter di atas.
+                            @elseif($tahunAktif)
+                                Belum ada pembayaran untuk tahun pelajaran
+                                <strong>{{ $tahunAktif->nama }}</strong>.
                             @else
                                 Belum ada pembayaran yang dicatat.
                             @endif
@@ -374,3 +377,50 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+// Hanya aktif untuk admin yayasan (jika select#selectJenjang ada di DOM)
+(function () {
+    const kelasByJenjang = {
+        'TK' : ['A', 'B'],
+        'SD' : ['I', 'II', 'III', 'IV', 'V', 'VI'],
+        'SMP': ['VII', 'VIII', 'IX'],
+    };
+    const allKelas = ['A','B','I','II','III','IV','V','VI','VII','VIII','IX'];
+
+    const selJenjang = document.querySelector('select[name="jenjang"]');
+    const selKelas   = document.getElementById('selectKelas');
+
+    if (!selJenjang || !selKelas) return; // admin jenjang pakai hidden input, skip
+
+    function updateKelasOptions(jenjang, selectedKelas) {
+        const options = jenjang ? (kelasByJenjang[jenjang] || []) : allKelas;
+        const current = selectedKelas ?? selKelas.value;
+
+        // Kosongkan lalu isi ulang
+        selKelas.innerHTML = '<option value="">Semua Kelas</option>';
+        options.forEach(function (k) {
+            const opt = document.createElement('option');
+            opt.value       = k;
+            opt.textContent = 'Kelas ' + k;
+            if (k === current) opt.selected = true;
+            selKelas.appendChild(opt);
+        });
+
+        // Jika nilai sebelumnya tidak ada di jenjang baru, reset ke "Semua Kelas"
+        if (current && !options.includes(current)) {
+            selKelas.value = '';
+        }
+    }
+
+    // Inisialisasi saat halaman load (sesuaikan dengan nilai filter saat ini)
+    updateKelasOptions(selJenjang.value, '{{ $filter['kelas'] ?? '' }}');
+
+    // Update setiap kali jenjang diganti
+    selJenjang.addEventListener('change', function () {
+        updateKelasOptions(this.value, null);
+    });
+}());
+</script>
+@endpush

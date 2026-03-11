@@ -27,6 +27,9 @@
         <a href="{{ route('pembayaran.index') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Kembali
         </a>
+        <a href="{{ route('pembayaran.create') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-plus-circle me-1"></i>Buat Pembayaran Baru
+        </a>
     </div>
 </div>
 
@@ -91,14 +94,28 @@
                 <tr>
                     <td class="ps-4 py-3 fw-600" style="color:var(--ink-muted);">Donatur</td>
                     <td class="py-3 pe-4" style="color:var(--red);">
-                        −Rp {{ number_format($pembayaran->nominal_donator * $pembayaran->jumlah_bulan, 0, ',', '.') }}
+                        {{-- nominal_donator sudah tersimpan sebagai total (per_bulan x jumlah_bulan) --}}
+                        −Rp {{ number_format($pembayaran->nominal_donator, 0, ',', '.') }}
+                        @if($pembayaran->jumlah_bulan > 1)
+                            <small style="color:var(--ink-faint);">
+                                (Rp {{ number_format($pembayaran->nominal_donator / $pembayaran->jumlah_bulan, 0, ',', '.') }}/bln
+                                × {{ $pembayaran->jumlah_bulan }})
+                            </small>
+                        @endif
                     </td>
                 </tr>
                 @if($pembayaran->nominal_mamin > 0)
                 <tr style="background:var(--bg);">
                     <td class="ps-4 py-3 fw-600" style="color:var(--ink-muted);">Mamin</td>
                     <td class="py-3 pe-4" style="color:#0369a1;">
-                        +Rp {{ number_format($pembayaran->nominal_mamin * $pembayaran->jumlah_bulan, 0, ',', '.') }}
+                        {{-- nominal_mamin sudah tersimpan sebagai total --}}
+                        +Rp {{ number_format($pembayaran->nominal_mamin, 0, ',', '.') }}
+                        @if($pembayaran->jumlah_bulan > 1)
+                            <small style="color:var(--ink-faint);">
+                                (Rp {{ number_format($pembayaran->nominal_mamin / $pembayaran->jumlah_bulan, 0, ',', '.') }}/bln
+                                × {{ $pembayaran->jumlah_bulan }})
+                            </small>
+                        @endif
                     </td>
                 </tr>
                 @endif

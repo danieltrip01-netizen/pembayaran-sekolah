@@ -11,6 +11,7 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\KreditController;
 use App\Http\Controllers\TahunAjaranController;
+use App\Http\Controllers\ProfileController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,10 @@ Route::get('/', fn() => redirect()->route('dashboard'));
 
 // Auth routes (dari Breeze)
 require __DIR__ . '/auth.php';
+
+// ── Public route: Riwayat Pembayaran via QR Code (tanpa login) ──────────────
+Route::get('/siswa/{siswa}/riwayat-pembayaran', [SiswaController::class, 'riwayatPembayaran'])
+     ->name('siswa.riwayat');
 
 // Protected routes
 Route::middleware(['auth'])->group(function () {
@@ -36,13 +41,15 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('siswa', SiswaController::class)->middleware(['auth']);
 
     // ── Route Import Siswa (halaman terpisah) ───────────────────────
+    Route::get('/siswa-import/export', [SiswaImportController::class, 'export'])->name('siswa.import.export');
     Route::prefix('siswa-import')->name('siswa.import.')->middleware(['auth'])->group(function () {
         Route::get('/',           [SiswaImportController::class, 'index'])->name('index');
         Route::post('/',          [SiswaImportController::class, 'import'])->name('store');
         Route::get('/template',   [SiswaImportController::class, 'downloadTemplate'])->name('template');
     });
     // === PEMBAYARAN ===
-    Route::get('/siswa/{siswa}/data', [PembayaranController::class, 'getSiswaData']);
+    Route::get('/siswa/{siswa}/data', [PembayaranController::class, 'getSiswaData'])->name('siswa.data');
+    Route::get('/pembayaran/preview', [PembayaranController::class, 'preview'])->name('pembayaran.preview');
     Route::resource('pembayaran', PembayaranController::class);
 
     // === SETORAN ===
@@ -57,6 +64,7 @@ Route::middleware(['auth'])->group(function () {
     // === CETAK KARTU ===
     Route::get('/cetak', [CetakController::class, 'index'])->name('cetak.index');
     Route::post('/cetak/kartu', [CetakController::class, 'kartu'])->name('cetak.kartu');
+    Route::get('/cetak/{siswa}/kartu', [CetakController::class, 'kartuSiswa'])->name('cetak.kartu-siswa');
 
     // === ADMIN YAYASAN ONLY ===
     Route::prefix('admin/users')
@@ -77,20 +85,19 @@ Route::middleware(['auth'])->group(function () {
                 [UserController::class, 'resetPassword']
             )->name('reset-password');
         });
-    Route::get('/setting', [App\Http\Controllers\SettingController::class, 'index'])
-        ->name('setting.index');
+    Route::get('/setting', [SettingController::class, 'index'])->name('setting.index');
+    Route::put('/setting', [SettingController::class, 'update'])->name('setting.update');
 
-    Route::put('/setting', [App\Http\Controllers\SettingController::class, 'update'])
-        ->name('setting.update');
+    // ── Tahun Pelajaran ───────────────────────────────────────────────
+    Route::get('/tahun-pelajaran',                                [TahunAjaranController::class, 'index'])->name('tahun-pelajaran.index');
+    Route::post('/tahun-pelajaran',                               [TahunAjaranController::class, 'store'])->name('tahun-pelajaran.store');
+    Route::put('/tahun-pelajaran/{tahunPelajaran}',               [TahunAjaranController::class, 'update'])->name('tahun-pelajaran.update');
+    Route::delete('/tahun-pelajaran/{tahunPelajaran}',            [TahunAjaranController::class, 'destroy'])->name('tahun-pelajaran.destroy');
+    Route::patch('/tahun-pelajaran/{tahunPelajaran}/activate',    [TahunAjaranController::class, 'activate'])->name('tahun-pelajaran.activate');
+    Route::patch('/tahun-pelajaran/{tahunPelajaran}/toggle-lock', [TahunAjaranController::class, 'toggleLock'])->name('tahun-pelajaran.toggle-lock');
 
     // ── Kredit Siswa ──────────────────────────────────────────────────
     Route::get('/kredit',                  [KreditController::class, 'index'])->name('kredit.index');
     Route::get('/kredit/{siswa}/tambah',   [KreditController::class, 'create'])->name('kredit.create');
     Route::post('/kredit/{siswa}',         [KreditController::class, 'store'])->name('kredit.store');
-
-    // ── Preview AJAX (opsional, untuk kredit real-time) ───────────────
-    Route::get('/pembayaran/preview', [App\Http\Controllers\PembayaranController::class, 'preview'])
-        ->name('pembayaran.preview');
-
-        
 });

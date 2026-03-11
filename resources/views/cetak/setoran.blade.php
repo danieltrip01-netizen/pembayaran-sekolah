@@ -220,49 +220,65 @@
     </table>
 
     {{-- ── Tabel Rekap Per Kelas ────────────────────────────────────── --}}
+    @php
+        $rekapPerKelas = $setoran->pembayaran
+            ->groupBy(fn($item) => $item->siswaKelas?->kelas?->nama ?? 'Tanpa Kelas')
+            ->sortKeys();
+
+        $hasMamin     = $setoran->total_mamin > 0;
+        $colspanTotal = $hasMamin ? 3 : 3; // No + Kelas + Jml Siswa
+    @endphp
+
     <table class="data-table">
         <thead>
             <tr>
                 <th>Kelas</th>
-                <th>Total Nominal SPP</th>
-                <th>Total Mamin</th>
+                <th style="width:80px">Jml. Siswa</th>
+                @if($hasMamin)
+                    <th>Total Nominal SPP</th>
+                    <th>Total Mamin</th>
+                @endif
                 <th>Subtotal</th>
             </tr>
         </thead>
         <tbody>
-            @php
-                $rekapPerKelas = $setoran->pembayaran->groupBy(function ($item) {
-                    return $item->siswa->kelas ?? 'Tanpa Kelas';
-                });
-            @endphp
-
             @foreach ($rekapPerKelas as $kelas => $items)
                 @php
-                    $subMamin = $items->sum('nominal_mamin');
+                    $subMamin   = $items->sum('nominal_mamin');
                     $subNominal = $items->sum(fn($p) => (float) $p->total_bayar);
-                    $subTotal = $items->sum(fn($p) => (float) $p->total_bayar - (float) $p->nominal_mamin);
+                    $subTotal   = $items->sum(fn($p) => (float) $p->total_bayar - (float) $p->nominal_mamin);
                 @endphp
                 <tr>
-                    <td class="text-center"><strong>Kelas {{ $kelas }}</strong></td>
-                    <td class="text-right">{{ number_format($subNominal, 0, ',', '.') }}</td>
-                    <td class="text-right">{{ $subMamin > 0 ? number_format($subMamin, 0, ',', '.') : '-' }}</td>
-                    <td class="text-right"><strong>{{ number_format($subTotal, 0, ',', '.') }}</strong></td>
+                    <td class="text-center"><strong>{{ $kelas }}</strong></td>
+                    <td class="text-center">{{ $items->count() }} siswa</td>
+                    @if($hasMamin)
+                        <td class="text-right">{{ number_format($subNominal, 0, ',', '.') }}</td>
+                        <td class="text-right">{{ $subMamin > 0 ? number_format($subMamin, 0, ',', '.') : '-' }}</td>
+                    @endif
+                    <td class="text-right"><strong>Rp {{ number_format($subTotal, 0, ',', '.') }}</strong></td>
                 </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <td class="text-center">GRAND TOTAL</td>
-                <td class="text-right">
-                    {{ number_format($setoran->total_nominal + $setoran->total_mamin, 0, ',', '.') }}</td>
-                <td class="text-right">{{ number_format($setoran->total_mamin, 0, ',', '.') }}</td>
-                <td class="text-right">Rp
-                    {{ number_format($setoran->total_keseluruhan - $setoran->total_mamin, 0, ',', '.') }}</td>
+                <td colspan="{{ $hasMamin ? 2 : 2 }}" class="text-center">
+                    GRAND TOTAL ({{ $setoran->pembayaran->count() }} siswa)
+                </td>
+                @if($hasMamin)
+                    <td class="text-right">
+                        {{ number_format($setoran->total_keseluruhan, 0, ',', '.') }}
+                    </td>
+                    <td class="text-right">{{ number_format($setoran->total_mamin, 0, ',', '.') }}</td>
+                @endif
+                <td class="text-right"><strong>Rp
+                    {{ number_format($setoran->total_nominal, 0, ',', '.') }}</strong>
+                </td>
             </tr>
         </tfoot>
     </table>
     <p style="font-size:9px;color:#777">
-        * Rekapitulasi berdasarkan data dari {{ $setoran->pembayaran->count() }} transaksi pembayaran.
+        * Rekapitulasi berdasarkan {{ $rekapPerKelas->count() }} kelas dari
+        {{ $setoran->pembayaran->count() }} transaksi pembayaran.
     </p>
 
     {{-- ── Tanda Tangan ─────────────────────────────────────────────── --}}

@@ -11,12 +11,44 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="fw-bold mb-1" style="font-family:'Sora',sans-serif;color:var(--ink)">Data Setoran</h4>
-        <p class="mb-0" style="color:var(--ink-muted);font-size:.85rem">Rekap pembayaran yang sudah disetor</p>
+        <p class="mb-0 d-flex align-items-center gap-2 flex-wrap" style="color:var(--ink-muted);font-size:.85rem">
+            <span>Rekap pembayaran yang sudah disetor</span>
+            @if($tahunPelajaran)
+                <span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;font-weight:600;
+                             padding:.18rem .6rem;border-radius:999px;
+                             background:#d1fae5;color:#065F46;border:1px solid #6ee7b7">
+                    <i class="bi bi-calendar-check"></i>T.A. {{ $tahunPelajaran->nama }}
+                </span>
+            @else
+                <span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;font-weight:600;
+                             padding:.18rem .6rem;border-radius:999px;
+                             background:var(--red-pale);color:var(--red);border:1px solid #fecaca">
+                    <i class="bi bi-exclamation-circle"></i>Tidak ada T.A. aktif
+                </span>
+            @endif
+        </p>
     </div>
     <a href="{{ route('setoran.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i>Buat Setoran
     </a>
 </div>
+
+@if(!$tahunPelajaran)
+<div class="rounded-3 p-3 mb-3 d-flex align-items-center gap-3"
+     style="background:#fff7ed;border:1px solid #fed7aa">
+    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"
+       style="color:var(--orange);font-size:1.2rem"></i>
+    <div style="font-size:.85rem">
+        <div class="fw-bold" style="color:#92400e">Tidak ada tahun pelajaran aktif</div>
+        <div style="color:var(--ink-muted)">
+            Data setoran tidak dapat ditampilkan.
+            <a href="{{ route('tahun-pelajaran.index') }}" class="fw-bold ms-1">
+                Aktifkan tahun pelajaran &#8594;
+            </a>
+        </div>
+    </div>
+</div>
+@endif
 
 {{-- Filter --}}
 <div class="card mb-3">

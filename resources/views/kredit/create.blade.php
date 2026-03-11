@@ -27,7 +27,7 @@ $jStyle = match($siswa->jenjang) {
                   style="background:{{ $jStyle['bg'] }};color:{{ $jStyle['color'] }};border:1px solid {{ $jStyle['border'] }}">
                 {{ $siswa->jenjang }}
             </span>
-            {{ $siswa->nama }} · {{ $siswa->kelas }}
+            {{ $siswa->nama }} · {{ $siswa->kelasAktif?->kelas?->nama ?? '-' }}
         </p>
     </div>
     <a href="{{ route('siswa.show', $siswa) }}" class="btn btn-outline-secondary btn-sm">
@@ -57,69 +57,7 @@ $jStyle = match($siswa->jenjang) {
                 <div class="text-muted small">Tidak ada saldo kredit</div>
                 @endif
             </div>
-        </div>
-
-        {{-- Form tambah kredit --}}
-        <div class="card">
-            <div class="card-header py-3" style="background:var(--primary);color:white">
-                <h6 class="mb-0 fw-bold"><i class="bi bi-plus-circle me-2"></i>Tambah Kredit</h6>
-            </div>
-            <div class="card-body">
-
-                {{-- Kalkulator cepat --}}
-                <div class="rounded-3 p-3 mb-3" style="background:#f0fdf4;border:1px solid #bbf7d0">
-                    <p class="small fw-bold text-success mb-2">
-                        <i class="bi bi-calculator me-1"></i>Kalkulator Kelebihan Bayar
-                    </p>
-                    <div class="row g-2 mb-2">
-                        <div class="col">
-                            <label class="form-label small mb-1">Selisih donatur/bln</label>
-                            <input type="number" id="calcSelisih" class="form-control form-control-sm"
-                                   placeholder="contoh: 30000" min="0" step="1000">
-                        </div>
-                        <div class="col">
-                            <label class="form-label small mb-1">Jumlah bulan lalu</label>
-                            <input type="number" id="calcBulan" class="form-control form-control-sm"
-                                   placeholder="contoh: 3" min="1" max="12">
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-success" onclick="hitung()">Hitung</button>
-                        <span class="small fw-bold text-success" id="calcResult" style="display:none">
-                            = Rp <span id="calcAngka">0</span>
-                        </span>
-                    </div>
-                </div>
-
-                <form method="POST" action="{{ route('kredit.store', $siswa) }}">
-                @csrf
-                    <div class="mb-3">
-                        <label class="form-label fw-600">Jumlah Kredit (Rp) <span class="text-danger">*</span></label>
-                        <input type="number" name="jumlah" id="inputJumlah"
-                               value="{{ old('jumlah') }}"
-                               class="form-control @error('jumlah') is-invalid @enderror"
-                               placeholder="0" min="1000" step="1000" required>
-                        @error('jumlah')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label fw-600">Keterangan <span class="text-danger">*</span></label>
-                        <input type="text" name="keterangan"
-                               value="{{ old('keterangan') }}"
-                               class="form-control @error('keterangan') is-invalid @enderror"
-                               placeholder="contoh: Kelebihan bayar Jul–Sep akibat donatur Oktober"
-                               required>
-                        @error('keterangan')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-
-                    <button type="submit" class="btn btn-success w-100 fw-600"
-                            onclick="return confirm('Tambah kredit Rp ' + document.getElementById('inputJumlah').value.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' untuk {{ addslashes($siswa->nama) }}?')">
-                        <i class="bi bi-plus-circle me-1"></i>Tambah Kredit
-                    </button>
-                </form>
-
-            </div>
-        </div>
+        </div>        
     </div>
 
     {{-- ═══ Kanan: Riwayat Log ═══ --}}

@@ -5,127 +5,146 @@ namespace App\Http\Controllers;
 use App\Models\Setting;
 use App\Models\Siswa;
 use App\Models\Pembayaran;
+use App\Models\TahunPelajaran;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class CetakController extends Controller
 {
-    // Halaman pilih siswa untuk cetak kartu
+    // ── Halaman pilih siswa untuk cetak kartu ────────────────────────────────
+
     public function index(Request $request)
     {
-        $user    = auth()->user();
-        $jenjang = $user->jenjang;
+        $user        = auth()->user();
+        $jenjang     = $user->jenjang;
+        $tahunAktif  = TahunPelajaran::aktif();
 
         $siswa = Siswa::aktif()
             ->when($jenjang, fn($q) => $q->jenjang($jenjang))
-            ->when($request->kelas, fn($q) => $q->where('kelas', $request->kelas))
-            ->orderBy('kelas')->orderBy('nama')
-            ->get();
 
-        return view('cetak.index', compact('siswa', 'jenjang'));
+            // FIX: filter kelas sekarang lewat relasi siswa_kelas → kelas
+            ->when($request->kelas, fn($q) =>
+                $q->whereHas('kelasAktif.kelas', fn($kq) =>
+                    $kq->where('nama', $request->kelas)
+                )
+            )
+
+            // Eager-load supaya sortBy & tampilan tidak N+1
+            ->with(['kelasAktif.kelas'])
+            ->get()
+
+            // FIX: orderBy 'kelas' tidak bisa di SQL karena kolom sudah di tabel lain;
+            //      urutkan di PHP setelah data loaded
+            ->sortBy(fn($s) =>
+                $s->jenjang . '|'
+                . str_pad($s->kelasAktif?->kelas?->urutan ?? 99, 3, '0', STR_PAD_LEFT) . '|'
+                . $s->nama
+            )
+            ->values();
+
+        return view('cetak.index', compact('siswa', 'jenjang', 'tahunAktif'));
     }
 
-    // ── Cetak kartu siswa (format F4, 4 per halaman) ─────────────────
+    // ── Cetak kartu siswa (format F4, 4 per halaman) ─────────────────────────
+
     public function kartu(Request $request)
     {
         $request->validate([
-            'siswa_ids'    => 'required|array|min:1',
-            'siswa_ids.*'  => 'exists:siswa,id',
-            'tahun_ajaran' => 'nullable|integer|min:2000|max:2100',
+            'siswa_ids'           => 'required|array|min:1',
+            'siswa_ids.*'         => 'exists:siswa,id',
+            'tahun_pelajaran_id'  => 'nullable|exists:tahun_pelajaran,id',
         ]);
 
         $user        = auth()->user();
         $userJenjang = $user->jenjang;
 
-        // Gunakan tahun ajaran dari form, fallback ke tahun berjalan
-        $tahunAjaran = $request->filled('tahun_ajaran')
-            ? (int) $request->tahun_ajaran
+        // Utamakan tahun pelajaran dari form, fallback ke tahun aktif
+        $tahunPelajaran = $request->filled('tahun_pelajaran_id')
+            ? TahunPelajaran::findOrFail($request->tahun_pelajaran_id)
+            : TahunPelajaran::aktif();
+
+        $tahunAjaran = $tahunPelajaran
+            ? (int) $tahunPelajaran->tanggal_mulai->format('Y')
             : ((int) date('m') >= 7 ? (int) date('Y') : (int) date('Y') - 1);
 
-        // ── Ambil HANYA siswa yang dipilih dari form ─────────────────
-        // Filter jenjang sebagai pengaman: admin jenjang tidak bisa cetak siswa jenjang lain
+        // FIX: eager-load relasi yang dibutuhkan buildItemsTabel
         $siswaList = Siswa::whereIn('id', $request->siswa_ids)
             ->when($userJenjang, fn($q) => $q->where('jenjang', $userJenjang))
-            ->with('pembayaran')
-            ->orderBy('jenjang')->orderBy('kelas')->orderBy('nama')
-            ->get();
+            ->with([
+                'pembayaran' => fn($q) => $q
+                    ->when($tahunPelajaran, fn($sq) =>
+                        $sq->where('tahun_pelajaran_id', $tahunPelajaran->id)
+                    ),
+                'pembayaran.pembayaranBulan',
+                'siswaKelas' => fn($q) => $q
+                    ->when($tahunPelajaran, fn($sq) =>
+                        $sq->where('tahun_pelajaran_id', $tahunPelajaran->id)
+                    )
+                    ->with('kelas'),
+            ])
+            ->get()
+            ->sortBy(fn($s) =>
+                $s->jenjang . '|'
+                . str_pad($s->getKelasForTahun($tahunPelajaran)?->urutan ?? 99, 3, '0', STR_PAD_LEFT) . '|'
+                . $s->nama
+            )
+            ->values();
 
-        // ── Buat data tabel per siswa ────────────────────────────────
-        $items = $this->buildItemsTabel($siswaList, $tahunAjaran);
-
-        // ── 4 kartu per halaman ──────────────────────────────────────
+        $items  = $this->buildItemsTabel($siswaList, $tahunAjaran, $tahunPelajaran);
         $chunks = $items->chunk(4);
 
-        // ── Ambil setting dari DB ────────────────────────────────────
-        [
-            'kepsekMap'      => $kepsekMap,
-            'namaYayasanMap' => $namaYayasanMap,
-            'namaSekolahMap' => $namaSekolahMap,
-            'alamatMap'      => $alamatMap,
-            'kota'           => $kota,
-            'logoDataMap'    => $logoDataMap,
-            'ttdDataMap'     => $ttdDataMap,
-        ] = $this->buildSettingMaps();
+        $maps = $this->buildSettingMaps();
 
-        $pdf = Pdf::loadView('cetak.kartu', compact(
-            'chunks',
-            'tahunAjaran',
-            'kepsekMap',
-            'namaYayasanMap',
-            'namaSekolahMap',
-            'alamatMap',
-            'kota',
-            'logoDataMap',
-            'ttdDataMap'
-        ))->setPaper([0, 0, 609.4, 935.4], 'portrait'); // F4
+        $pdf = Pdf::loadView('cetak.kartu', array_merge(compact('chunks', 'tahunAjaran'), $maps))
+            ->setPaper([0, 0, 609.4, 935.4], 'portrait'); // F4
 
         return $pdf->stream('kartu-spp-' . date('Ymd') . '.pdf');
     }
 
-    // ── Kartu per siswa (1 kartu, A5) ────────────────────────────────
+    // ── Kartu per siswa (1 kartu, A5) ────────────────────────────────────────
+
     public function kartuSiswa(Siswa $siswa)
     {
-        $tahunAjaran = (int) date('m') >= 7 ? (int) date('Y') : (int) date('Y') - 1;
-        $siswa->load('pembayaran');
+        $tahunPelajaran = TahunPelajaran::aktif();
+        $tahunAjaran    = $tahunPelajaran
+            ? (int) $tahunPelajaran->tanggal_mulai->format('Y')
+            : ((int) date('m') >= 7 ? (int) date('Y') : (int) date('Y') - 1);
 
-        $items      = $this->buildItemsTabel(collect([$siswa]), $tahunAjaran);
-        $tabelBulan = $items->first()['tabel_bulan'];
-        $chunks     = collect([collect([['siswa' => $siswa, 'tabel_bulan' => $tabelBulan]])]);
+        // FIX: eager-load relasi lengkap
+        $siswa->load([
+            'pembayaran' => fn($q) => $q
+                ->when($tahunPelajaran, fn($sq) =>
+                    $sq->where('tahun_pelajaran_id', $tahunPelajaran->id)
+                ),
+            'pembayaran.pembayaranBulan',
+            'siswaKelas' => fn($q) => $q
+                ->when($tahunPelajaran, fn($sq) =>
+                    $sq->where('tahun_pelajaran_id', $tahunPelajaran->id)
+                )
+                ->with('kelas'),
+        ]);
 
-        [
-            'kepsekMap'      => $kepsekMap,
-            'namaYayasanMap' => $namaYayasanMap,
-            'namaSekolahMap' => $namaSekolahMap,
-            'alamatMap'      => $alamatMap,
-            'kota'           => $kota,
-            'logoDataMap'    => $logoDataMap,
-            'ttdDataMap'     => $ttdDataMap,
-        ] = $this->buildSettingMaps();
+        $items      = $this->buildItemsTabel(collect([$siswa]), $tahunAjaran, $tahunPelajaran);
+        $chunks     = collect([collect([$items->first()])]);
 
-        $pdf = Pdf::loadView('cetak.kartu', compact(
-            'chunks',
-            'tahunAjaran',
-            'kepsekMap',
-            'namaYayasanMap',
-            'namaSekolahMap',
-            'alamatMap',
-            'kota',
-            'logoDataMap',
-            'ttdDataMap'
-        ))->setPaper('a5', 'portrait');
+        $maps = $this->buildSettingMaps();
+
+        $pdf = Pdf::loadView('cetak.kartu', array_merge(compact('chunks', 'tahunAjaran'), $maps))
+            ->setPaper('a5', 'portrait');
 
         return $pdf->stream('kartu-' . $siswa->id_siswa . '.pdf');
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════════════
     //  PRIVATE HELPERS
-    // ════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════════════
 
     /**
      * Ambil semua setting dari DB dan bangun map yang dibutuhkan view cetak.
      */
-    public function buildSettingMaps(): array
+    private function buildSettingMaps(): array
     {
         $all    = Setting::allIndexed();
         $global = $all['global'];
@@ -147,27 +166,39 @@ class CetakController extends Controller
             $logoDataMap[$j] = '';
             if ($s->logo && Storage::disk('public')->exists($s->logo)) {
                 $mime = Storage::disk('public')->mimeType($s->logo);
-                $logoDataMap[$j] = "data:{$mime};base64," . base64_encode(Storage::disk('public')->get($s->logo));
+                $logoDataMap[$j] = "data:{$mime};base64,"
+                    . base64_encode(Storage::disk('public')->get($s->logo));
             }
 
             $ttdDataMap[$j] = '';
             if ($s->tanda_tangan && Storage::disk('public')->exists($s->tanda_tangan)) {
                 $mime = Storage::disk('public')->mimeType($s->tanda_tangan);
-                $ttdDataMap[$j] = "data:{$mime};base64," . base64_encode(Storage::disk('public')->get($s->tanda_tangan));
+                $ttdDataMap[$j] = "data:{$mime};base64,"
+                    . base64_encode(Storage::disk('public')->get($s->tanda_tangan));
             }
         }
 
         return compact(
             'kepsekMap', 'namaYayasanMap', 'namaSekolahMap',
-            'alamatMap', 'kota', 'logoDataMap', 'ttdDataMap', 'global'
-        ) + ['globalSetting' => $global, 'settingMap' => $all];
+            'alamatMap', 'kota', 'logoDataMap', 'ttdDataMap'
+        ) + [
+            'globalSetting' => $global,
+            'settingMap'    => $all,
+        ];
     }
 
     /**
-     * Buat collection item [{siswa, tabel_bulan}] untuk semua siswa.
+     * Buat collection item [{siswa, kelas_nama, nominal_spp, nominal_donator,
+     * nominal_mamin, tabel_bulan}] untuk semua siswa.
+     *
+     * FIX: Tidak lagi mengandalkan kolom kelas/nominal_* di tabel siswa.
+     *      Semua diambil dari relasi siswa_kelas.
      */
-    private function buildItemsTabel($siswaList, int $tahunAjaran): \Illuminate\Support\Collection
-    {
+    private function buildItemsTabel(
+        $siswaList,
+        int $tahunAjaran,
+        ?TahunPelajaran $tahunPelajaran = null
+    ): \Illuminate\Support\Collection {
         $urutanBulan = ['07', '08', '09', '10', '11', '12', '01', '02', '03', '04', '05', '06'];
         $namaBulan   = [
             '01' => 'Januari',  '02' => 'Februari', '03' => 'Maret',
@@ -176,39 +207,88 @@ class CetakController extends Controller
             '10' => 'Oktober',  '11' => 'November',  '12' => 'Desember',
         ];
 
-        return collect($siswaList)->map(function ($siswa) use ($tahunAjaran, $urutanBulan, $namaBulan) {
+        return collect($siswaList)->map(function ($siswa) use (
+            $tahunAjaran, $urutanBulan, $namaBulan, $tahunPelajaran
+        ) {
+            // FIX: ambil nominal dari siswa_kelas (bukan kolom di tabel siswa)
+            $ka           = $siswa->getKelasForTahun($tahunPelajaran);
+            $nominalSpp   = (float) ($ka?->nominal_spp      ?? 0);
+            $nominalDon   = (float) ($ka?->nominal_donator  ?? 0);
+            $nominalMamin = $siswa->jenjang === 'TK' ? (float) ($ka?->nominal_mamin ?? 0) : 0.0;
+            $kelasNama    = $ka?->kelas?->nama ?? '-';
+
+            // Daftar bulan aktif siswa
             $bulanAktif = $siswa->getBulanAktif($tahunAjaran);
 
+            // FIX: Indeks pembayaran per bulan menggunakan relasi pembayaranBulan,
+            //      bukan JSON bulan_bayar + Siswa::safeDecode() yang sudah dihapus
+            $bulanToPembayaran = [];
+            foreach ($siswa->pembayaran as $p) {
+                // Pastikan pembayaranBulan sudah di-eager-load
+                $bulanList = $p->relationLoaded('pembayaranBulan')
+                    ? $p->pembayaranBulan->pluck('bulan')
+                    : $p->pembayaranBulan()->pluck('bulan');
+
+                foreach ($bulanList as $b) {
+                    $bulanToPembayaran[$b] = $p;
+                }
+            }
+
             $tabelBulan = collect($urutanBulan)->map(function ($bln) use (
-                $siswa, $tahunAjaran, $bulanAktif, $namaBulan
+                $tahunAjaran, $bulanAktif, $namaBulan,
+                $bulanToPembayaran, $nominalSpp, $nominalDon, $nominalMamin
             ) {
                 $tahun   = (int) $bln >= 7 ? $tahunAjaran : $tahunAjaran + 1;
                 $periode = sprintf('%04d-%02d', $tahun, $bln);
                 $aktif   = in_array($periode, $bulanAktif);
-
-                $bayar = null;
-                if ($aktif) {
-                    foreach ($siswa->pembayaran as $p) {
-                        $raw       = $p->getRawOriginal('bulan_bayar');
-                        $bulanList = \App\Models\Siswa::safeDecode($raw);
-                        if (in_array($periode, $bulanList)) {
-                            $bayar = $p;
-                            break;
-                        }
-                    }
-                }
+                $bayar   = $aktif ? ($bulanToPembayaran[$periode] ?? null) : null;
 
                 return [
                     'bulan'         => $namaBulan[$bln],
+                    'periode'       => $periode,
                     'aktif'         => $aktif,
-                    'uang_sekolah'  => (float) $siswa->nominal_pembayaran,
-                    'donatur'       => (float) $siswa->nominal_donator,
-                    'yang_dibayar'  => $bayar ? (float) $bayar->total_bayar / $bayar->jumlah_bulan : null,
-                    'tanggal_bayar' => $bayar ? $bayar->tanggal_bayar->format('d/m/y') : null,
+                    // Nominal SPP dari siswa_kelas (snapshot saat transaksi jika ada)
+                    'uang_sekolah'  => $bayar
+                        ? (float) $bayar->nominal_per_bulan
+                        : $nominalSpp,
+                    'donatur'       => $bayar
+                        ? (float) $bayar->nominal_donator / max(1, $bayar->jumlah_bulan)
+                        : $nominalDon,
+                    'mamin'         => $bayar
+                        ? (float) $bayar->nominal_mamin / max(1, $bayar->jumlah_bulan)
+                        : $nominalMamin,
+                    'yang_dibayar'  => $bayar
+                        ? (float) $bayar->total_bayar / max(1, $bayar->jumlah_bulan)
+                        : null,
+                    'tanggal_bayar' => $bayar
+                        ? $bayar->tanggal_bayar->format('d/m/y')
+                        : null,
                 ];
             });
 
-            return ['siswa' => $siswa, 'tabel_bulan' => $tabelBulan];
+            // Generate QR di controller — DomPDF andal render <img> data URI
+            $qrSrc = '';
+            try {
+                $riwayatUrl = route('siswa.riwayat', $siswa->id);
+                $qrRaw      = QrCode::format('svg')
+                                ->size(112)
+                                ->margin(2)
+                                ->errorCorrection('M')
+                                ->generate($riwayatUrl);
+                $qrSrc = 'data:image/svg+xml;base64,' . base64_encode((string) $qrRaw);
+            } catch (\Throwable $e) {
+                // QR gagal generate — kartu tetap tercetak tanpa QR
+            }
+
+            return [
+                'siswa'           => $siswa,
+                'kelas_nama'      => $kelasNama,
+                'nominal_spp'     => $nominalSpp,
+                'nominal_donator' => $nominalDon,
+                'nominal_mamin'   => $nominalMamin,
+                'tabel_bulan'     => $tabelBulan,
+                'qr_src'          => $qrSrc,
+            ];
         });
     }
 }

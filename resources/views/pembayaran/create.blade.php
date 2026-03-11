@@ -118,22 +118,47 @@
             </div>
             <div class="card-body">
 
+                {{-- Warning jika tidak ada tahun pelajaran aktif --}}
+                @if(!$tahunPelajaran)
+                <div class="rounded-3 mb-3 py-2 px-3"
+                     style="background:#fff7ed;border:1px solid #fed7aa;font-size:.82rem;color:#92400e;">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Tidak ada tahun pelajaran aktif. Aktifkan tahun pelajaran terlebih dahulu sebelum mencatat pembayaran.
+                    <a href="{{ route('tahun-pelajaran.index') }}" class="fw-600 ms-1">Ke Tahun Pelajaran →</a>
+                </div>
+                @endif
+
                 <div class="mb-3">
-                    <label class="form-label">Siswa <span class="text-danger">*</span></label>
+                    <label class="form-label">
+                        Siswa <span class="text-danger">*</span>
+                        @if($tahunPelajaran)
+                            <span class="ms-1" style="font-size:.75rem;font-weight:400;color:var(--ink-muted);">
+                                — terdaftar di T.A.
+                                <strong style="color:var(--blue-dark);">{{ $tahunPelajaran->nama }}</strong>
+                            </span>
+                        @endif
+                    </label>
                     <select name="siswa_id" id="siswaSelect"
-                            class="form-select @error('siswa_id') is-invalid @enderror" required>
+                            class="form-select @error('siswa_id') is-invalid @enderror"
+                            required {{ !$tahunPelajaran ? 'disabled' : '' }}>
                         <option value="">— Pilih Siswa —</option>
                         @foreach($daftarSiswa as $s)
+                        
                         <option value="{{ $s->id }}"
                             {{ (old('siswa_id', $siswa?->id) == $s->id) ? 'selected' : '' }}>
-                            [{{ $s->jenjang }}-{{ $s->kelas }}] {{ $s->nama }}
-                            @if($s->id_siswa) ({{ $s->id_siswa }}) @endif
+                            {{ $s->nama }}
                         </option>
                         @endforeach
                     </select>
                     @error('siswa_id')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
+                    @if($tahunPelajaran && $daftarSiswa->isEmpty())
+                    <div class="form-text" style="color:var(--yellow);">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Belum ada siswa yang terdaftar di kelas untuk T.A. {{ $tahunPelajaran->nama }}.
+                    </div>
+                    @endif
                 </div>
 
                 {{-- Info siswa --}}
@@ -370,7 +395,8 @@ let bulanTerpilih = [];
 let saldoKredit   = 0;
 let tahunAjaran   = {{ $tahunAjaran }};
 
-const SISWA_DATA_BASE = "{{ url('/siswa') }}";
+// Base URL untuk endpoint data siswa (dipakai JS di bawah)
+const SISWA_DATA_URL = (siswaId) => `{{ url('/siswa') }}/${siswaId}/data`;
 
 // ─── Pilih Siswa ──────────────────────────────────────────────────────────────
 document.getElementById('siswaSelect').addEventListener('change', async function () {
@@ -384,7 +410,7 @@ document.getElementById('siswaSelect').addEventListener('change', async function
     document.getElementById('legendBulan').classList.add('d-none');
 
     try {
-        const res = await fetch(`${SISWA_DATA_BASE}/${siswaId}/data`, {
+        const res = await fetch(SISWA_DATA_URL(siswaId), {
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
@@ -606,5 +632,17 @@ function fmt(n) {
         if (sel.value) sel.dispatchEvent(new Event('change'));
     });
 @endif
+
+// ─── Simpan dengan tombol Enter ───────────────────────────────────────────────
+document.getElementById('formPembayaran').addEventListener('keydown', function (e) {
+    // Abaikan Enter di dalam textarea agar tetap bisa membuat baris baru
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        const btnSubmit = document.getElementById('btnSubmit');
+        if (!btnSubmit.disabled) {
+            btnSubmit.click();
+        }
+    }
+});
 </script>
 @endpush

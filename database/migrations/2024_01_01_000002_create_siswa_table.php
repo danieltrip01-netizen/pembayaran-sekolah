@@ -10,17 +10,26 @@ return new class extends Migration
     {
         Schema::create('siswa', function (Blueprint $table) {
             $table->id();
+
+            // NIS / ID unik siswa
             $table->string('id_siswa', 20)->unique();
+
             $table->string('nama', 100);
-            $table->string('kelas', 10); // I, II, III, IV, V, VI, VII, VIII, IX, A, B
+
+            // Jenjang tetap boleh di sini
             $table->enum('jenjang', ['TK', 'SD', 'SMP']);
-            $table->decimal('nominal_pembayaran', 12, 2)->default(0);
-            $table->decimal('nominal_donator', 12, 2)->default(0);
-            $table->decimal('nominal_mamin', 12, 2)->default(0)->comment('Khusus TK');
+
+            // Saldo kredit untuk kelebihan bayar
+            $table->decimal('saldo_kredit', 12, 2)->default(0);
+
             $table->date('tanggal_masuk');
             $table->date('tanggal_keluar')->nullable();
-            $table->enum('status', ['aktif', 'tidak_aktif'])->default('aktif');
+
+            $table->enum('status', ['aktif', 'tidak_aktif'])
+                  ->default('aktif');
+
             $table->text('keterangan')->nullable();
+
             $table->softDeletes();
             $table->timestamps();
         });

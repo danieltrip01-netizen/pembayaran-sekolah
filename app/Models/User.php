@@ -43,24 +43,34 @@ class User extends Authenticatable
     }
 
     // Helper methods
+    public function hasRole(string ...$roles): bool
+    {
+        return in_array($this->role, $roles, true);
+    }
+
+    public function isAdminJenjang(string $jenjang): bool
+    {
+        return $this->role === 'admin_' . strtolower($jenjang);
+    }
+
     public function isAdminYayasan(): bool
     {
-        return $this->role === 'admin_yayasan';
+        return $this->hasRole('admin_yayasan');
     }
 
     public function isAdminTK(): bool
     {
-        return $this->role === 'admin_tk';
+        return $this->hasRole('admin_tk');
     }
 
     public function isAdminSD(): bool
     {
-        return $this->role === 'admin_sd';
+        return $this->hasRole('admin_sd');
     }
 
     public function isAdminSMP(): bool
     {
-        return $this->role === 'admin_smp';
+        return $this->hasRole('admin_smp');
     }
 
     public function getJenjangAttribute(): ?string

@@ -11,33 +11,29 @@ use Illuminate\Support\Facades\Auth;
 
 class Siswa extends Model
 {
-    use HasFactory;
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'siswa';
 
     protected $fillable = [
         'id_siswa',
         'nama',
-        'kelas',
         'jenjang',
-        'nominal_pembayaran',
-        'nominal_donator',
-        'nominal_mamin',
-        'saldo_kredit',          // ← TAMBAH: agar mass-assignable jika perlu
+        'saldo_kredit',
         'tanggal_masuk',
         'tanggal_keluar',
         'status',
         'keterangan',
+        'no_hp_wali',
+        // DIHAPUS: 'kelas', 'nominal_pembayaran', 'nominal_donator', 'nominal_mamin'
+        // Nominal SPP kini ada di tabel siswa_kelas (per tahun pelajaran)
     ];
 
     protected $casts = [
-        'tanggal_masuk'      => 'date',
-        'tanggal_keluar'     => 'date',
-        'nominal_pembayaran' => 'decimal:2',
-        'nominal_donator'    => 'decimal:2',
-        'nominal_mamin'      => 'decimal:2',
-        'saldo_kredit'       => 'integer',   // ← TAMBAH: selalu integer, tidak ada desimal
+        'tanggal_masuk'  => 'date',
+        'tanggal_keluar' => 'date',
+        'saldo_kredit'   => 'decimal:2',
+        // DIHAPUS: nominal_pembayaran, nominal_donator, nominal_mamin
     ];
 
     // ─── Relasi ─────────────────────────────────────────────────────
@@ -48,8 +44,34 @@ class Siswa extends Model
     }
 
     /**
-     * Relasi ke riwayat kredit siswa.
-     * ← TAMBAH: dibutuhkan oleh KreditController::create()
+     * Riwayat penempatan kelas + tarif SPP per tahun pelajaran.
+     * Dari sini bisa diambil nominal_spp, nominal_donator, nominal_mamin
+     * yang berlaku untuk masing-masing tahun.
+     */
+    public function siswaKelas()
+    {
+        return $this->hasMany(SiswaKelas::class);
+    }
+
+    /**
+     * Record siswa_kelas untuk tahun pelajaran yang sedang aktif.
+     */
+    public function kelasAktif()
+    {
+        return $this->hasOne(SiswaKelas::class)
+            ->whereHas('tahunPelajaran', fn($q) => $q->where('is_active', true));
+    }
+
+    /**
+     * Detail bulan yang sudah dibayar (via tabel pembayaran_bulan).
+     */
+    public function pembayaranBulan()
+    {
+        return $this->hasMany(PembayaranBulan::class);
+    }
+
+    /**
+     * Riwayat kredit siswa.
      */
     public function kreditLog()
     {
@@ -59,46 +81,34 @@ class Siswa extends Model
     // ─── Accessors ──────────────────────────────────────────────────
 
     /**
-     * Total tagihan bersih per bulan: (SPP - Donatur + Mamin)
+     * Tagihan bersih per bulan berdasarkan siswa_kelas tahun aktif.
+     * Return 0 jika siswa belum memiliki record siswa_kelas aktif.
      */
     public function getTotalTagihanAttribute(): float
     {
-        return (float) $this->nominal_pembayaran
-            - (float) $this->nominal_donator
-            + (float) $this->nominal_mamin;
+        $sk = $this->kelasAktif;
+        if (!$sk) return 0.0;
+
+        return max(0, (float) $sk->nominal_spp
+            - (float) $sk->nominal_donator
+            + (float) $sk->nominal_mamin);
     }
 
     /**
-     * Selalu return array, tidak pernah null.
+     * Daftar bulan yang sudah dibayar siswa ini (format: "YYYY-MM").
+     * Menggunakan tabel pembayaran_bulan, bukan JSON di tabel pembayaran.
      */
-    public function getBulanSudahBayarAttribute(int $tahunpelajaranid): array
+    public function getBulanSudahBayar(?int $tahunPelajaranId = null): array
     {
-        if (!$this->relationLoaded('pembayaran')) {
-            $this->load('pembayaran');
+        $query = $this->pembayaranBulan();
+
+        if ($tahunPelajaranId) {
+            $query->whereHas('pembayaran', fn($q) =>
+                $q->where('tahun_pelajaran_id', $tahunPelajaranId)
+            );
         }
 
-        $result = [];
-        foreach ($this->pembayaran as $bayar) {
-            $raw   = $bayar->getRawOriginal('bulan_bayar');
-            $bulan = static::safeDecode($raw);
-            foreach ($bulan as $b) {
-                if (!empty($b) && is_string($b)) $result[] = $b;
-            }
-        }
-
-        return array_values(array_unique($result));
-    }
-    /**
-     * Decode bulan_bayar dengan aman dari segala format.
-     */
-    public static function safeDecode(mixed $value): array
-    {
-        if (is_array($value)) return $value;
-        if (is_string($value) && !empty($value)) {
-            $decoded = json_decode($value, true);
-            if (is_array($decoded)) return $decoded;
-        }
-        return [];
+        return $query->pluck('bulan')->unique()->values()->toArray();
     }
 
     /**
@@ -140,15 +150,13 @@ class Siswa extends Model
 
     /**
      * Tambah saldo kredit dan catat di log.
-     * Dibungkus transaction agar atomik.
      */
-    public function tambahKredit(int $jumlah, string $keterangan = '', ?int $userId = null): KreditLog
+    public function tambahKredit(float $jumlah, string $keterangan = '', ?int $userId = null): KreditLog
     {
         return DB::transaction(function () use ($jumlah, $keterangan, $userId) {
-            // Refresh agar dapat nilai terkini
             $this->refresh();
 
-            $sebelum = (int) $this->saldo_kredit;
+            $sebelum = (float) $this->saldo_kredit;
             $sesudah = $sebelum + $jumlah;
 
             $this->increment('saldo_kredit', $jumlah);
@@ -157,7 +165,7 @@ class Siswa extends Model
                 'siswa_id'      => $this->id,
                 'user_id'       => $userId ?? Auth::id(),
                 'pembayaran_id' => null,
-                'tipe'          => 'tambah',
+                'tipe'          => 'tambah',   // enum: tambah | pakai
                 'jumlah'        => $jumlah,
                 'saldo_sebelum' => $sebelum,
                 'saldo_sesudah' => $sesudah,
@@ -167,19 +175,18 @@ class Siswa extends Model
     }
 
     /**
-     * Pakai saldo kredit (dipanggil saat input pembayaran).
+     * Pakai saldo kredit saat input pembayaran.
      * Mengembalikan jumlah yang benar-benar dipakai.
      */
-    public function pakaiKredit(int $jumlah, int $pembayaranId, string $keterangan = '', ?int $userId = null): int
+    public function pakaiKredit(float $jumlah, int $pembayaranId, string $keterangan = '', ?int $userId = null): float
     {
         return DB::transaction(function () use ($jumlah, $pembayaranId, $keterangan, $userId) {
-            // Refresh agar dapat nilai terkini (hindari race condition)
             $this->refresh();
 
-            $dipakai = min($jumlah, (int) $this->saldo_kredit);
-            if ($dipakai <= 0) return 0;
+            $dipakai = min($jumlah, (float) $this->saldo_kredit);
+            if ($dipakai <= 0) return 0.0;
 
-            $sebelum = (int) $this->saldo_kredit;
+            $sebelum = (float) $this->saldo_kredit;
             $sesudah = $sebelum - $dipakai;
 
             $this->decrement('saldo_kredit', $dipakai);
@@ -188,7 +195,7 @@ class Siswa extends Model
                 'siswa_id'      => $this->id,
                 'user_id'       => $userId ?? Auth::id(),
                 'pembayaran_id' => $pembayaranId,
-                'tipe'          => 'pakai',
+                'tipe'          => 'pakai',    // enum: tambah | pakai
                 'jumlah'        => $dipakai,
                 'saldo_sebelum' => $sebelum,
                 'saldo_sesudah' => $sesudah,
@@ -210,7 +217,9 @@ class Siswa extends Model
             default => 'XX',
         };
 
-        $lastSiswa = static::where('id_siswa', 'like', $prefix . '%')
+        // withTrashed() agar ID soft-deleted tetap dihitung, mencegah duplikasi
+        $lastSiswa = static::withTrashed()
+            ->where('id_siswa', 'like', $prefix . '%')
             ->orderBy('id_siswa', 'desc')
             ->first();
 
@@ -220,4 +229,27 @@ class Siswa extends Model
 
         return $prefix . str_pad($newNum, 4, '0', STR_PAD_LEFT);
     }
+
+    public function getKelasForTahun(?TahunPelajaran $tahunPelajaran = null): ?\App\Models\SiswaKelas
+{
+    if ($tahunPelajaran === null) {
+        // Fallback: gunakan kelasAktif (sudah ada di model)
+        return $this->relationLoaded('kelasAktif')
+            ? $this->kelasAktif
+            : $this->kelasAktif()->with('kelas')->first();
+    }
+
+    // Cari dari relasi siswaKelas yang sudah di-eager-load (jika ada)
+    if ($this->relationLoaded('siswaKelas')) {
+        return $this->siswaKelas
+            ->where('tahun_pelajaran_id', $tahunPelajaran->id)
+            ->first();
+    }
+
+    // Fallback: query langsung
+    return $this->siswaKelas()
+        ->where('tahun_pelajaran_id', $tahunPelajaran->id)
+        ->with('kelas')
+        ->first();
+}
 }

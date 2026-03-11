@@ -48,14 +48,30 @@ class Setting extends Model
      */
     public static function allIndexed(): array
     {
-        $rows = static::whereIn('jenjang', ['global', 'TK', 'SD', 'SMP'])
+        $jenjangList = ['global', 'TK', 'SD', 'SMP'];
+
+        $rows = static::whereIn('jenjang', $jenjangList)
             ->get()
             ->keyBy('jenjang');
 
-        foreach (['global', 'TK', 'SD', 'SMP'] as $key) {
-            if (!isset($rows[$key])) {
-                $rows[$key] = static::forJenjang($key === 'global' ? 'global' : $key);
-            }
+        // Batch insert semua yang belum ada (1 query, bukan N query)
+        $missing = collect($jenjangList)->reject(fn($k) => isset($rows[$k]));
+
+        if ($missing->isNotEmpty()) {
+            $inserts = $missing->map(fn($k) => [
+                'jenjang'      => $k,
+                'nama_yayasan' => '',
+                'nama_sekolah' => $k !== 'global' ? $k . ' Kristen Dorkas' : '',
+                'created_at'   => now(),
+                'updated_at'   => now(),
+            ])->values()->toArray();
+
+            static::insertOrIgnore($inserts);
+
+            // Re-fetch setelah batch insert
+            $rows = static::whereIn('jenjang', $jenjangList)
+                ->get()
+                ->keyBy('jenjang');
         }
 
         return $rows->all();

@@ -3,16 +3,19 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class KreditLog extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'kredit_log';
 
     protected $fillable = [
         'siswa_id',
         'user_id',
         'pembayaran_id',
-        'tipe',          // 'masuk' | 'keluar'
+        'tipe',          // enum: 'tambah' | 'pakai'  ← BUKAN 'masuk'/'keluar'
         'jumlah',
         'saldo_sebelum',
         'saldo_sesudah',
@@ -20,12 +23,12 @@ class KreditLog extends Model
     ];
 
     protected $casts = [
-        'jumlah'        => 'integer',
-        'saldo_sebelum' => 'integer',
-        'saldo_sesudah' => 'integer',
+        'jumlah'        => 'decimal:2',
+        'saldo_sebelum' => 'decimal:2',
+        'saldo_sesudah' => 'decimal:2',
     ];
 
-    // ─── Relasi ──────────────────────────────────────────────────────────────
+    // ─── Relasi ──────────────────────────────────────────────────────
 
     public function siswa()
     {
@@ -42,19 +45,27 @@ class KreditLog extends Model
         return $this->belongsTo(Pembayaran::class);
     }
 
-    // ─── Scopes ──────────────────────────────────────────────────────────────
+    // ─── Scopes ──────────────────────────────────────────────────────
 
-    public function scopeMasuk($query)
+    /**
+     * Kredit yang ditambahkan (kelebihan bayar, manual top-up, dll).
+     * Sebelumnya: scopeMasuk → diganti scopeTambah sesuai enum migrasi.
+     */
+    public function scopeTambah($query)
     {
-        return $query->where('tipe', 'masuk');
+        return $query->where('tipe', 'tambah');
     }
 
-    public function scopeKeluar($query)
+    /**
+     * Kredit yang dipakai untuk potongan pembayaran.
+     * Sebelumnya: scopeKeluar → diganti scopePakai sesuai enum migrasi.
+     */
+    public function scopePakai($query)
     {
-        return $query->where('tipe', 'keluar');
+        return $query->where('tipe', 'pakai');
     }
 
-    // ─── Accessors ───────────────────────────────────────────────────────────
+    // ─── Accessors ───────────────────────────────────────────────────
 
     /**
      * Label tipe kredit dalam Bahasa Indonesia.
@@ -62,8 +73,8 @@ class KreditLog extends Model
     public function getTipeLabelAttribute(): string
     {
         return match ($this->tipe) {
-            'masuk'  => 'Kredit Masuk',
-            'keluar' => 'Kredit Terpakai',
+            'tambah' => 'Kredit Masuk',    // 'tambah' di DB → label tetap ramah
+            'pakai'  => 'Kredit Terpakai',
             default  => ucfirst($this->tipe ?? '-'),
         };
     }
@@ -74,8 +85,8 @@ class KreditLog extends Model
     public function getTipeBadgeClassAttribute(): string
     {
         return match ($this->tipe) {
-            'masuk'  => 'success',
-            'keluar' => 'danger',
+            'tambah' => 'success',
+            'pakai'  => 'danger',
             default  => 'secondary',
         };
     }

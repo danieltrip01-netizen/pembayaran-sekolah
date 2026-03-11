@@ -34,5 +34,17 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    /*
+    |--------------------------------------------------------------------------
+    | Fonnte WhatsApp Gateway
+    |--------------------------------------------------------------------------
+    | Token didapat dari https://fonnte.com setelah daftar & tambah device.
+    | admin_number: nomor WA admin yang menerima notif setiap transaksi.
+    |               Kosongkan ('') jika tidak ingin notif ke admin.
+    */
+    'fonnte' => [
+        'token'        => env('FONNTE_TOKEN', ''),
+        'admin_number' => env('FONNTE_ADMIN_NUMBER', ''),
+    ],
 
 ];

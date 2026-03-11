@@ -8,15 +8,40 @@
 
 @section('content')
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h4 class="fw-bold mb-1" style="color: var(--navy); font-family:'Sora',sans-serif;">Data Pembayaran</h4>
-        <p class="mb-0" style="color: var(--ink-muted); font-size:.85rem;">Riwayat transaksi pembayaran SPP</p>
+        <p class="mb-0" style="color: var(--ink-muted); font-size:.85rem;">
+            Riwayat transaksi pembayaran SPP
+            @if($tahunPelajaran)
+                &nbsp;&middot;&nbsp;
+                <span class="badge"
+                      style="background:var(--blue-pale);color:var(--blue-dark);
+                             border:1px solid var(--blue-light);font-size:.72rem;font-weight:600;">
+                    <i class="bi bi-calendar-check me-1"></i>T.A. {{ $tahunPelajaran->nama }}
+                </span>
+            @endif
+        </p>
     </div>
     <a href="{{ route('pembayaran.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i>Input Pembayaran
     </a>
 </div>
+
+@if(!$tahunPelajaran)
+<div class="rounded-3 p-3 mb-3 d-flex align-items-center gap-3"
+     style="background:#fff7ed;border:1px solid #fed7aa;">
+    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"
+       style="color:var(--orange);font-size:1.2rem;"></i>
+    <div style="font-size:.85rem;">
+        <div class="fw-600" style="color:#92400e;">Tidak ada tahun pelajaran aktif</div>
+        <div style="color:var(--ink-muted);">
+            Data pembayaran tidak ditampilkan. Aktifkan tahun pelajaran terlebih dahulu.
+            <a href="{{ route('tahun-pelajaran.index') }}" class="fw-600 ms-1">Ke Tahun Pelajaran →</a>
+        </div>
+    </div>
+</div>
+@endif
 
 {{-- Filter --}}
 <div class="card mb-3">
@@ -158,22 +183,21 @@
                                style="color:var(--ink);">
                                 {{ $p->siswa->nama ?? '—' }}
                             </a>
-                            @if($p->siswa)
-                                @php $jClass = 'badge-' . strtolower($p->siswa->jenjang); @endphp
-                                <span class="{{ $jClass }} ms-1">{{ $p->siswa->jenjang }}</span>
-                            @endif
+                            
                         </td>
                         <td class="small" style="color:var(--ink-soft);">
-                            {{ $p->siswa->kelas ?? '—' }}
+                            {{ $p->siswaKelas?->kelas?->nama ?? '—' }}
                         </td>
                         <td>
                             @php
-                                $bulanArr = $p->bulan_bayar ?? [];
-                                $count    = count($bulanArr);
+                                // pembayaranBulan sudah di-eager-load di controller (index)
+                                $bulanArr = $p->pembayaranBulan->sortBy('bulan');
+                                $count    = $bulanArr->count();
+                                $first    = $bulanArr->first();
                             @endphp
                             <span class="small" style="color:var(--ink-soft);" title="{{ $p->bulan_label }}">
                                 @if($count > 2)
-                                    {{ \Carbon\Carbon::createFromFormat('Y-m', $bulanArr[0])->translatedFormat('M Y') }}
+                                    {{ $first ? \Carbon\Carbon::createFromFormat('Y-m', $first->bulan)->translatedFormat('M Y') : '—' }}
                                     <span class="badge ms-1"
                                           style="background:var(--bg);color:var(--ink-muted);
                                                  border:1px solid var(--border);font-size:.65rem;">
@@ -223,7 +247,7 @@
                             @endif
                         </td>
                         <td class="small" style="color:var(--ink-muted);">
-                            {{ $p->user->name ?? '—' }}
+                            {{ $p->user->nama_lengkap ?? $p->user->name ?? '—' }}
                         </td>
                         <td class="pe-4 text-end">
                             <div class="d-flex gap-1 flex-nowrap justify-content-end">

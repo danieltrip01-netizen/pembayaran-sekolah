@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Pembayaran;
+use App\Models\Setoran;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -78,26 +80,40 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')
                          ->with('success', 'User berhasil dihapus.');
     }
+
+    /**
+     * Reset password user ke password default.
+     * POST /admin/users/{user}/reset-password
+     */
+    public function resetPassword(User $user)
+    {
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'Tidak dapat mereset password akun sendiri.');
+        }
+
+        // Default password: 8 karakter pertama email + angka tahun ini
+        $defaultPassword = substr($user->email, 0, 8) . date('Y');
+
+        $user->update(['password' => Hash::make($defaultPassword)]);
+
+        return back()->with('success',
+            "Password {$user->name} berhasil direset. Password baru: {$defaultPassword}"
+        );
+    }
     // ── Show ─────────────────────────────────────────────────────────
 
     public function show(User $user)
     {
-        // Total pembayaran yang dibuat user ini
-        $totalPembayaran = \App\Models\Pembayaran::where('user_id', $user->id)->count();
+        $totalPembayaran = Pembayaran::where('user_id', $user->id)->count();
 
-        // Total setoran yang dibuat user ini (jika ada model Setoran)
-        $totalSetoran = class_exists(\App\Models\Setoran::class)
-            ? \App\Models\Setoran::where('user_id', $user->id)->count()
-            : 0;
+        $totalSetoran = Setoran::where('user_id', $user->id)->count();
 
-        // Transaksi bulan ini
-        $bulanIni = \App\Models\Pembayaran::where('user_id', $user->id)
+        $bulanIni = Pembayaran::where('user_id', $user->id)
             ->whereYear('tanggal_bayar',  now()->year)
             ->whereMonth('tanggal_bayar', now()->month)
             ->count();
 
-        // 5 pembayaran terakhir
-        $recentPembayaran = \App\Models\Pembayaran::where('user_id', $user->id)
+        $recentPembayaran = Pembayaran::where('user_id', $user->id)
             ->with('siswa')
             ->orderByDesc('tanggal_bayar')
             ->limit(5)

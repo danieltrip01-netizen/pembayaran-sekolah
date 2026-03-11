@@ -16,6 +16,7 @@ class Setoran extends Model
         'kode_setoran',
         'tanggal_setoran',
         'jenjang',
+        'tahun_pelajaran_id',   // TAMBAH: ada di migrasi, sebelumnya tidak di fillable
         'total_nominal',
         'total_mamin',
         'total_keseluruhan',
@@ -30,7 +31,7 @@ class Setoran extends Model
         'total_keseluruhan' => 'decimal:2',
     ];
 
-    // Relasi
+    // ─── Relasi ──────────────────────────────────────────────────────
 
     public function pembayaran()
     {
@@ -42,17 +43,27 @@ class Setoran extends Model
         return $this->belongsTo(User::class);
     }
 
-    // Generate kode setoran
+    /**
+     * Tahun pelajaran yang terkait dengan setoran ini.
+     * Berguna untuk filter laporan per tahun ajaran.
+     */
+    public function tahunPelajaran()
+    {
+        return $this->belongsTo(TahunPelajaran::class);
+    }
+
+    // ─── Static Helpers ──────────────────────────────────────────────
+
     public static function generateKodeSetoran(string $jenjang): string
     {
         $prefix = 'SET-' . strtoupper($jenjang) . '-' . date('Ymd') . '-';
         $last = static::withTrashed()
             ->where('kode_setoran', 'like', $prefix . '%')
-            ->orderBy('kode_setoran', 'desc')
+            ->orderByDesc('kode_setoran')
+            ->lockForUpdate() // Cegah race condition pada concurrent request
             ->first();
 
         if ($last) {
-            // Mengambil angka terakhir dari string, contoh: SET-TK-20260220-001 -> mengambil 001
             $lastNumber = (int) substr($last->kode_setoran, strrpos($last->kode_setoran, '-') + 1);
             $num = $lastNumber + 1;
         } else {
