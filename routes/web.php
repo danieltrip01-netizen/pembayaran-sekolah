@@ -21,7 +21,7 @@ Route::get('/', fn() => redirect()->route('dashboard'));
 // Auth routes (dari Breeze)
 require __DIR__ . '/auth.php';
 
-// ── Public route: Riwayat Pembayaran via QR Code (tanpa login) ──────────────
+// ── Public route: Riwayat Pembayaran via QR Code (dilindungi access_token) ──
 Route::get('/siswa/{siswa}/riwayat-pembayaran', [SiswaController::class, 'riwayatPembayaran'])
      ->name('siswa.riwayat');
 
@@ -38,11 +38,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ── Route Siswa (CRUD) ──────────────────────────────────────────
-    Route::resource('siswa', SiswaController::class)->middleware(['auth']);
+    Route::resource('siswa', SiswaController::class);
 
     // ── Route Import Siswa (halaman terpisah) ───────────────────────
     Route::get('/siswa-import/export', [SiswaImportController::class, 'export'])->name('siswa.import.export');
-    Route::prefix('siswa-import')->name('siswa.import.')->middleware(['auth'])->group(function () {
+    Route::prefix('siswa-import')->name('siswa.import.')->group(function () {
         Route::get('/',           [SiswaImportController::class, 'index'])->name('index');
         Route::post('/',          [SiswaImportController::class, 'import'])->name('store');
         Route::get('/template',   [SiswaImportController::class, 'downloadTemplate'])->name('template');
@@ -69,7 +69,7 @@ Route::middleware(['auth'])->group(function () {
     // === ADMIN YAYASAN ONLY ===
     Route::prefix('admin/users')
         ->name('admin.users.')
-        ->middleware(['auth', 'role:admin_yayasan'])
+        ->middleware(['role:admin_yayasan'])
         ->group(function () {
             Route::get('/',    [UserController::class, 'index'])->name('index');
             Route::get('/create', [UserController::class, 'create'])->name('create');

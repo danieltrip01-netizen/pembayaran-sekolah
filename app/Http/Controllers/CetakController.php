@@ -269,7 +269,10 @@ class CetakController extends Controller
             // Generate QR di controller — DomPDF andal render <img> data URI
             $qrSrc = '';
             try {
-                $riwayatUrl = route('siswa.riwayat', $siswa->id);
+                $riwayatUrl = route('siswa.riwayat', [
+                    'siswa' => $siswa->id,
+                    'token' => $siswa->access_token,
+                ]);
                 $qrRaw      = QrCode::format('svg')
                                 ->size(112)
                                 ->margin(2)

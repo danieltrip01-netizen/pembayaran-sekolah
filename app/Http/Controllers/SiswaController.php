@@ -291,8 +291,13 @@ class SiswaController extends Controller
 
     // ─── Riwayat Pembayaran via QR (public, no auth) ─────────────────────────
 
-    public function riwayatPembayaran(Siswa $siswa)
+    public function riwayatPembayaran(Siswa $siswa, Request $request)
     {
+        // Validasi access_token — mencegah akses tanpa QR code yang valid
+        if (!$request->filled('token') || !hash_equals((string) $siswa->access_token, (string) $request->query('token'))) {
+            abort(403, 'Akses tidak diizinkan.');
+        }
+
         // Load semua relasi yang dibutuhkan sekaligus
         $siswa->load([
             'pembayaran' => fn($q) => $q->with('pembayaranBulan')

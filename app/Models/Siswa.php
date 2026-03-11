@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class Siswa extends Model
 {
@@ -25,9 +26,19 @@ class Siswa extends Model
         'status',
         'keterangan',
         'no_hp_wali',
+        'access_token',
         // DIHAPUS: 'kelas', 'nominal_pembayaran', 'nominal_donator', 'nominal_mamin'
         // Nominal SPP kini ada di tabel siswa_kelas (per tahun pelajaran)
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $siswa) {
+            if (empty($siswa->access_token)) {
+                $siswa->access_token = Str::random(32);
+            }
+        });
+    }
 
     protected $casts = [
         'tanggal_masuk'  => 'date',
@@ -217,17 +228,21 @@ class Siswa extends Model
             default => 'XX',
         };
 
-        // withTrashed() agar ID soft-deleted tetap dihitung, mencegah duplikasi
-        $lastSiswa = static::withTrashed()
-            ->where('id_siswa', 'like', $prefix . '%')
-            ->orderBy('id_siswa', 'desc')
-            ->first();
+        // Gunakan lock pesimistik agar tidak ada race condition saat request serentak
+        return DB::transaction(function () use ($prefix) {
+            // lockForUpdate() mencegah dua request mengambil angka yang sama
+            $lastSiswa = static::withTrashed()
+                ->where('id_siswa', 'like', $prefix . '%')
+                ->orderBy('id_siswa', 'desc')
+                ->lockForUpdate()
+                ->first();
 
-        $newNum = $lastSiswa
-            ? ((int) substr($lastSiswa->id_siswa, strlen($prefix))) + 1
-            : 1;
+            $newNum = $lastSiswa
+                ? ((int) substr($lastSiswa->id_siswa, strlen($prefix))) + 1
+                : 1;
 
-        return $prefix . str_pad($newNum, 4, '0', STR_PAD_LEFT);
+            return $prefix . str_pad($newNum, 4, '0', STR_PAD_LEFT);
+        });
     }
 
     public function getKelasForTahun(?TahunPelajaran $tahunPelajaran = null): ?\App\Models\SiswaKelas
