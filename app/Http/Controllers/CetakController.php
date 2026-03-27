@@ -23,23 +23,27 @@ class CetakController extends Controller
 
         $siswa = Siswa::aktif()
             ->when($jenjang, fn($q) => $q->jenjang($jenjang))
-
-            // FIX: filter kelas sekarang lewat relasi siswa_kelas → kelas
+            ->when($tahunAktif, fn($q) =>
+                $q->whereHas('siswaKelas', fn($sq) =>
+                    $sq->where('tahun_pelajaran_id', $tahunAktif->id)
+                )
+            )
             ->when($request->kelas, fn($q) =>
-                $q->whereHas('kelasAktif.kelas', fn($kq) =>
+                $q->whereHas('siswaKelas.kelas', fn($kq) =>
                     $kq->where('nama', $request->kelas)
                 )
             )
-
-            // Eager-load supaya sortBy & tampilan tidak N+1
-            ->with(['kelasAktif.kelas'])
+            ->with([
+                'siswaKelas' => fn($q) => $q
+                    ->when($tahunAktif, fn($sq) =>
+                        $sq->where('tahun_pelajaran_id', $tahunAktif->id)
+                    )
+                    ->with('kelas'),
+            ])
             ->get()
-
-            // FIX: orderBy 'kelas' tidak bisa di SQL karena kolom sudah di tabel lain;
-            //      urutkan di PHP setelah data loaded
             ->sortBy(fn($s) =>
                 $s->jenjang . '|'
-                . str_pad($s->kelasAktif?->kelas?->urutan ?? 99, 3, '0', STR_PAD_LEFT) . '|'
+                . str_pad($s->siswaKelas->first()?->kelas?->urutan ?? 99, 3, '0', STR_PAD_LEFT) . '|'
                 . $s->nama
             )
             ->values();
@@ -60,7 +64,6 @@ class CetakController extends Controller
         $user        = auth()->user();
         $userJenjang = $user->jenjang;
 
-        // Utamakan tahun pelajaran dari form, fallback ke tahun aktif
         $tahunPelajaran = $request->filled('tahun_pelajaran_id')
             ? TahunPelajaran::findOrFail($request->tahun_pelajaran_id)
             : TahunPelajaran::aktif();
@@ -69,7 +72,6 @@ class CetakController extends Controller
             ? (int) $tahunPelajaran->tanggal_mulai->format('Y')
             : ((int) date('m') >= 7 ? (int) date('Y') : (int) date('Y') - 1);
 
-        // FIX: eager-load relasi yang dibutuhkan buildItemsTabel
         $siswaList = Siswa::whereIn('id', $request->siswa_ids)
             ->when($userJenjang, fn($q) => $q->where('jenjang', $userJenjang))
             ->with([
@@ -112,7 +114,6 @@ class CetakController extends Controller
             ? (int) $tahunPelajaran->tanggal_mulai->format('Y')
             : ((int) date('m') >= 7 ? (int) date('Y') : (int) date('Y') - 1);
 
-        // FIX: eager-load relasi lengkap
         $siswa->load([
             'pembayaran' => fn($q) => $q
                 ->when($tahunPelajaran, fn($sq) =>
@@ -126,8 +127,8 @@ class CetakController extends Controller
                 ->with('kelas'),
         ]);
 
-        $items      = $this->buildItemsTabel(collect([$siswa]), $tahunAjaran, $tahunPelajaran);
-        $chunks     = collect([collect([$items->first()])]);
+        $items  = $this->buildItemsTabel(collect([$siswa]), $tahunAjaran, $tahunPelajaran);
+        $chunks = collect([collect([$items->first()])]);
 
         $maps = $this->buildSettingMaps();
 
@@ -142,37 +143,40 @@ class CetakController extends Controller
     // ════════════════════════════════════════════════════════════════════════
 
     /**
-     * Ambil semua setting dari DB dan bangun map yang dibutuhkan view cetak.
+     * Bangun semua map setting per-jenjang.
+     * Setiap sekolah (TK/SD/SMP) menyimpan datanya sendiri — tidak ada global setting.
      */
     private function buildSettingMaps(): array
     {
-        $all    = Setting::allIndexed();
-        $global = $all['global'];
+        $all = Setting::allIndexed(); // ['TK' => ..., 'SD' => ..., 'SMP' => ...]
 
-        $namaYayasan = $global->nama_yayasan ?: 'Yayasan Kristen';
-        $alamat      = collect([$global->alamat, $global->kota])->filter()->join(', ');
-        $kota        = $global->kota ?: 'Lasem';
-
-        $kepsekMap = $namaYayasanMap = $namaSekolahMap = $alamatMap = $logoDataMap = $ttdDataMap = [];
+        $kepsekMap      = [];
+        $namaYayasanMap = [];
+        $namaSekolahMap = [];
+        $alamatMap      = [];
+        $kotaMap        = [];
+        $logoDataMap    = [];
+        $ttdDataMap     = [];
 
         foreach (['TK', 'SD', 'SMP'] as $j) {
-            $s = $all[$j];
+            $s = $all[$j] ?? null;
 
-            $kepsekMap[$j]      = $s->nama_kepala_sekolah ?: "Kepala Sekolah $j";
-            $namaYayasanMap[$j] = $namaYayasan;
-            $namaSekolahMap[$j] = $s->nama_sekolah ?: "$j Kristen";
-            $alamatMap[$j]      = $alamat;
+            $kepsekMap[$j]      = $s?->nama_kepala_sekolah ?: "Kepala Sekolah $j";
+            $namaYayasanMap[$j] = $s?->nama_yayasan        ?: 'Yayasan Kristen Dorkas';
+            $namaSekolahMap[$j] = $s?->nama_sekolah        ?: "$j Kristen Dorkas";
+            $alamatMap[$j]      = collect([$s?->alamat, $s?->kota])->filter()->join(', ');
+            $kotaMap[$j]        = $s?->kota                ?: 'Lasem';
 
             $logoDataMap[$j] = '';
-            if ($s->logo && Storage::disk('public')->exists($s->logo)) {
-                $mime = Storage::disk('public')->mimeType($s->logo);
+            if ($s?->logo && Storage::disk('public')->exists($s->logo)) {
+                $mime            = Storage::disk('public')->mimeType($s->logo);
                 $logoDataMap[$j] = "data:{$mime};base64,"
                     . base64_encode(Storage::disk('public')->get($s->logo));
             }
 
             $ttdDataMap[$j] = '';
-            if ($s->tanda_tangan && Storage::disk('public')->exists($s->tanda_tangan)) {
-                $mime = Storage::disk('public')->mimeType($s->tanda_tangan);
+            if ($s?->tanda_tangan && Storage::disk('public')->exists($s->tanda_tangan)) {
+                $mime           = Storage::disk('public')->mimeType($s->tanda_tangan);
                 $ttdDataMap[$j] = "data:{$mime};base64,"
                     . base64_encode(Storage::disk('public')->get($s->tanda_tangan));
             }
@@ -180,19 +184,15 @@ class CetakController extends Controller
 
         return compact(
             'kepsekMap', 'namaYayasanMap', 'namaSekolahMap',
-            'alamatMap', 'kota', 'logoDataMap', 'ttdDataMap'
+            'alamatMap', 'kotaMap', 'logoDataMap', 'ttdDataMap'
         ) + [
-            'globalSetting' => $global,
-            'settingMap'    => $all,
+            'settingMap' => $all,
         ];
     }
 
     /**
      * Buat collection item [{siswa, kelas_nama, nominal_spp, nominal_donator,
-     * nominal_mamin, tabel_bulan}] untuk semua siswa.
-     *
-     * FIX: Tidak lagi mengandalkan kolom kelas/nominal_* di tabel siswa.
-     *      Semua diambil dari relasi siswa_kelas.
+     * nominal_mamin, tabel_bulan, qr_src}] untuk semua siswa.
      */
     private function buildItemsTabel(
         $siswaList,
@@ -210,21 +210,16 @@ class CetakController extends Controller
         return collect($siswaList)->map(function ($siswa) use (
             $tahunAjaran, $urutanBulan, $namaBulan, $tahunPelajaran
         ) {
-            // FIX: ambil nominal dari siswa_kelas (bukan kolom di tabel siswa)
             $ka           = $siswa->getKelasForTahun($tahunPelajaran);
             $nominalSpp   = (float) ($ka?->nominal_spp      ?? 0);
             $nominalDon   = (float) ($ka?->nominal_donator  ?? 0);
             $nominalMamin = $siswa->jenjang === 'TK' ? (float) ($ka?->nominal_mamin ?? 0) : 0.0;
             $kelasNama    = $ka?->kelas?->nama ?? '-';
 
-            // Daftar bulan aktif siswa
             $bulanAktif = $siswa->getBulanAktif($tahunAjaran);
 
-            // FIX: Indeks pembayaran per bulan menggunakan relasi pembayaranBulan,
-            //      bukan JSON bulan_bayar + Siswa::safeDecode() yang sudah dihapus
             $bulanToPembayaran = [];
             foreach ($siswa->pembayaran as $p) {
-                // Pastikan pembayaranBulan sudah di-eager-load
                 $bulanList = $p->relationLoaded('pembayaranBulan')
                     ? $p->pembayaranBulan->pluck('bulan')
                     : $p->pembayaranBulan()->pluck('bulan');
@@ -247,7 +242,6 @@ class CetakController extends Controller
                     'bulan'         => $namaBulan[$bln],
                     'periode'       => $periode,
                     'aktif'         => $aktif,
-                    // Nominal SPP dari siswa_kelas (snapshot saat transaksi jika ada)
                     'uang_sekolah'  => $bayar
                         ? (float) $bayar->nominal_per_bulan
                         : $nominalSpp,
@@ -266,18 +260,18 @@ class CetakController extends Controller
                 ];
             });
 
-            // Generate QR di controller — DomPDF andal render <img> data URI
             $qrSrc = '';
             try {
-                $riwayatUrl = route('siswa.riwayat', [
-                    'siswa' => $siswa->id,
-                    'token' => $siswa->access_token,
-                ]);
-                $qrRaw      = QrCode::format('svg')
-                                ->size(112)
-                                ->margin(2)
-                                ->errorCorrection('M')
-                                ->generate($riwayatUrl);
+                // Gunakan signed URL untuk route siswa.riwayat.publik
+                $riwayatUrl = \Illuminate\Support\Facades\URL::signedRoute(
+                    'siswa.riwayat.publik',
+                    ['siswa' => $siswa->id]
+                );
+                $qrRaw  = QrCode::format('svg')
+                            ->size(112)
+                            ->margin(2)
+                            ->errorCorrection('M')
+                            ->generate($riwayatUrl);
                 $qrSrc = 'data:image/svg+xml;base64,' . base64_encode((string) $qrRaw);
             } catch (\Throwable $e) {
                 // QR gagal generate — kartu tetap tercetak tanpa QR

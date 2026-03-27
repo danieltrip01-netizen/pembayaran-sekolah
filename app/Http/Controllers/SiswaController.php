@@ -330,18 +330,56 @@ class SiswaController extends Controller
         $statusBulan  = $this->hitungStatusBulan($bulanAktif, $bulanDibayar, $siswa->pembayaran);
 
         // ── Bangun array riwayat untuk view ─────────────────────────────────
-        $riwayat = array_map(function (array $item) use ($nomSpp, $nomDonatur, $nomMamin, $isTK) {
+
+        // Pra-hitung distribusi kredit per bulan:
+        // kredit dari setiap transaksi dialokasikan bertahap bulan per bulan
+        // (bulan pertama diserap dulu, sisa lanjut ke bulan berikutnya) sampai habis.
+        $kreditPerBulan = []; // ['2024-07' => nominal_kredit, ...]
+
+        // Kelompokkan item per transaksi
+        $transaksiMap = [];
+        foreach ($statusBulan as $item) {
+            if (!$item['sudah_bayar'] || !$item['data_bayar']) continue;
+            $pid = $item['data_bayar']->id;
+            if (!isset($transaksiMap[$pid])) {
+                $transaksiMap[$pid] = ['bayar' => $item['data_bayar'], 'bulan' => []];
+            }
+            $transaksiMap[$pid]['bulan'][] = $item['bulan'];
+        }
+
+        foreach ($transaksiMap as $entry) {
+            $bayar  = $entry['bayar'];
+            $bulan  = $entry['bulan'];
+            sort($bulan);
+
+            $jmlBln          = max(1, (int) $bayar->jumlah_bulan);
+            $donaturPerBulan = round((float) $bayar->nominal_donator / $jmlBln, 0);
+            $maminPerBulan   = round((float) $bayar->nominal_mamin   / $jmlBln, 0);
+            $tagihanBersih   = max(0, (float) $bayar->nominal_per_bulan - $donaturPerBulan + $maminPerBulan);
+            $sisaKredit      = (float) ($bayar->kredit_digunakan ?? 0);
+
+            foreach ($bulan as $b) {
+                $potongan           = min($sisaKredit, $tagihanBersih);
+                $kreditPerBulan[$b] = $potongan;
+                $sisaKredit        -= $potongan;
+            }
+        }
+
+        $riwayat = array_map(function (array $item) use ($nomSpp, $nomDonatur, $nomMamin, $isTK, $kreditPerBulan) {
             /** @var \App\Models\Pembayaran|null $bayar */
             $bayar = $item['data_bayar'];
 
             // Nominal dari record pembayaran (jika sudah bayar) atau dari siswa_kelas
             if ($bayar) {
-                $jmlBln         = max(1, (int) $bayar->jumlah_bulan);
-                $sppRow         = (float) $bayar->nominal_per_bulan;
-                $donaturRow     = round((float) $bayar->nominal_donator  / $jmlBln, 0);
-                $maminRow       = round((float) $bayar->nominal_mamin    / $jmlBln, 0);
-                $kreditRow      = round((float) ($bayar->kredit_digunakan ?? 0) / $jmlBln, 0);
-                $yangDibayarRow = max(0, $sppRow - $donaturRow + $maminRow - $kreditRow);
+                $jmlBln     = max(1, (int) $bayar->jumlah_bulan);
+                $sppRow     = (float) $bayar->nominal_per_bulan;
+                $donaturRow = round((float) $bayar->nominal_donator / $jmlBln, 0);
+                $maminRow   = round((float) $bayar->nominal_mamin   / $jmlBln, 0);
+
+                // Kredit bertahap: ambil porsi yang sudah dihitung untuk bulan ini
+                $kreditRow      = $kreditPerBulan[$item['bulan']] ?? 0.0;
+                $tagihanBersih  = max(0, $sppRow - $donaturRow + $maminRow);
+                $yangDibayarRow = max(0, $tagihanBersih - $kreditRow);
             } else {
                 $sppRow         = $nomSpp;
                 $donaturRow     = $nomDonatur;

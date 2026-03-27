@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Pembayaran;
 use App\Models\Setting;
+use Illuminate\Support\Facades\URL;
 
 class NotifikasiPembayaran
 {
@@ -40,10 +41,14 @@ class NotifikasiPembayaran
         $tanggal    = $pembayaran->tanggal_bayar->translatedFormat('d F Y');
         $kode       = $pembayaran->kode_bayar;
         $namaSiswa  = $siswa->nama;
-        $riwayatUrl = route('siswa.riwayat', $siswa->id);
 
-        // Gunakan string concatenation — hindari heredoc karena ?? dan ?->
-        // tidak bisa dipakai langsung di dalam {} interpolasi PHP.
+        // Signed URL — bisa diakses tanpa login, berlaku 7 hari
+        $riwayatUrl = URL::temporarySignedRoute(
+            'siswa.riwayat.publik',
+            now()->addDays(7),
+            ['siswa' => $siswa->id]
+        );
+
         return "✅ *Konfirmasi Pembayaran SPP*\n\n"
              . "Yth. Wali Murid *{$namaSiswa}*,\n\n"
              . "Pembayaran SPP telah kami terima:\n"
@@ -51,7 +56,7 @@ class NotifikasiPembayaran
              . "📚 Bulan     : {$bulanList}\n"
              . "💰 Jumlah    : *{$total}*\n"
              . "🔖 Kode Bayar: {$kode}\n\n"
-             . "Lihat riwayat lengkap:\n"
+             . "Lihat riwayat lengkap (berlaku 7 hari):\n"
              . "{$riwayatUrl}\n\n"
              . "Terima kasih 🙏\n"
              . "_{$namaApp}_";

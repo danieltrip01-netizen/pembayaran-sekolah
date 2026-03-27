@@ -18,8 +18,14 @@ class TahunAjaranController extends Controller
             'siswaKelas' => fn($q) => $jenjang
                 ? $q->whereHas('siswa', fn($s) => $s->where('jenjang', $jenjang))
                 : $q,
-            'pembayaran',
-            'setoran',
+            // Filter pembayaran via siswa.jenjang (siswa_id selalu ada, siswaKelas nullable)
+            'pembayaran' => fn($q) => $jenjang
+                ? $q->whereHas('siswa', fn($s) => $s->where('jenjang', $jenjang))
+                : $q,
+            // Setoran punya kolom jenjang sendiri — filter langsung
+            'setoran' => fn($q) => $jenjang
+                ? $q->where('jenjang', $jenjang)
+                : $q,
         ])
         ->orderByDesc('tanggal_mulai')
         ->get();

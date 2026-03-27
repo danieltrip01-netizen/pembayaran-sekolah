@@ -34,9 +34,10 @@ class SiswaTemplateExport implements
             'nama',             // A — wajib
             'jenjang',          // B — TK / SD / SMP
             'kelas',            // C — nama kelas (I, II, VII, KB, dll)
-            'nominal_spp',      // D — SPP per bulan
-            'nominal_donator',  // E — keringanan (0 jika tidak ada)
-            'nominal_mamin',    // F — khusus TK, isi 0 untuk SD/SMP
+            'no_hp_wali',       // D — No. HP wali (opsional)
+            'nominal_spp',      // E — SPP per bulan
+            'nominal_donator',  // F — keringanan (0 jika tidak ada)
+            'nominal_mamin',    // G — khusus TK, isi 0 untuk SD/SMP
         ];
     }
 
@@ -44,11 +45,11 @@ class SiswaTemplateExport implements
     {
         return [
             // Contoh SD
-            ['Budi Santoso',  'SD',  'I',   175000, 60000, 0],
+            ['Budi Santoso',  'SD',  'I',   '081234567890', 175000, 60000, 0],
             // Contoh TK
-            ['Sari Dewi',     'TK',  'OA',  200000, 0,     50000],
+            ['Sari Dewi',     'TK',  'OA',  '082198765432', 200000, 0,     50000],
             // Contoh SMP
-            ['Andi Pratama',  'SMP', 'VII', 350000, 75000, 0],
+            ['Andi Pratama',  'SMP', 'VII', '',             350000, 75000, 0],
         ];
     }
 
@@ -64,7 +65,7 @@ class SiswaTemplateExport implements
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
             ],
             // Border semua sel
-            "A1:F{$lastRow}" => [
+            "A1:G{$lastRow}" => [
                 'borders' => [
                     'allBorders' => [
                         'borderStyle' => Border::BORDER_THIN,
@@ -85,9 +86,10 @@ class SiswaTemplateExport implements
             'A' => 28,  // nama
             'B' => 8,   // jenjang
             'C' => 8,   // kelas
-            'D' => 18,  // nominal_spp
-            'E' => 18,  // nominal_donator
-            'F' => 16,  // nominal_mamin
+            'D' => 20,  // no_hp_wali
+            'E' => 18,  // nominal_spp
+            'F' => 18,  // nominal_donator
+            'G' => 16,  // nominal_mamin
         ];
     }
 }

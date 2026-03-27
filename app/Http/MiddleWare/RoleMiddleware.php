@@ -16,7 +16,8 @@ class RoleMiddleware
 
         $user = auth()->user();
 
-        if (!in_array($user->role, $roles)) {
+        // Cek apakah role user termasuk yang diizinkan
+        if (!empty($roles) && !in_array($user->role, $roles)) {
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }
 

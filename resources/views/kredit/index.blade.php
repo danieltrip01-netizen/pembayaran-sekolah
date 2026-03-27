@@ -51,29 +51,27 @@
             <table class="table mb-0" style="font-size:.85rem">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Waktu</th>
+                        <th>No</th>
+                        <th>Tanggal</th>
                         <th>Siswa</th>
                         <th>Tipe</th>
                         <th class="text-end">Jumlah</th>
                         <th class="text-end">Saldo Sesudah</th>
                         <th>Keterangan</th>
-                        <th>Oleh</th>
+                        
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($log as $i => $l)
                     <tr>
                         <td class="text-muted">{{ $log->firstItem() + $i }}</td>
-                        <td class="text-muted">{{ $l->created_at->isoFormat('D MMM Y HH:mm') }}</td>
+                        <td class="text-muted">{{ $l->created_at->isoFormat('D MMM Y') }}</td>
                         <td>
                             <a href="{{ route('kredit.create', $l->siswa) }}"
                                class="fw-600 text-decoration-none">
                                 {{ $l->siswa->nama ?? '—' }}
                             </a>
-                            <div class="text-muted" style="font-size:.72rem">
-                                {{ $l->siswa->jenjang }} · {{ $l->siswa->kelas }}
-                            </div>
+                            
                         </td>
                         <td>
                             @if($l->tipe === 'tambah')
@@ -96,13 +94,13 @@
                         <td>
                             {{ $l->keterangan }}
                             @if($l->pembayaran)
-                            · <a href="{{ route('pembayaran.show', $l->pembayaran) }}"
-                                 class="text-decoration-none" style="color:var(--primary)">
-                                <code>{{ $l->pembayaran->kode_bayar }}</code>
+                            <a href="{{ route('pembayaran.show', $l->pembayaran) }}"
+                                 class="text-decoration-none" style="color:var(--blue)">
+                                {{ $l->pembayaran->kode_bayar }}
                               </a>
                             @endif
                         </td>
-                        <td class="text-muted">{{ $l->user->name ?? '—' }}</td>
+                        
                     </tr>
                     @empty
                     <tr>

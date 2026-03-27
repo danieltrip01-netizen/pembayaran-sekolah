@@ -1,0 +1,46 @@
+[13-Mar-2026 00:42:35 Asia/Jakarta] PHP Fatal error:  Uncaught RuntimeException: Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.4.0". You are running 7.4.33. in /home/esck4946/laravel/vendor/composer/platform_check.php:26
+Stack trace:
+#0 /home/esck4946/laravel/vendor/composer/autoload_real.php(25): require()
+#1 /home/esck4946/laravel/vendor/autoload.php(22): ComposerAutoloaderInitc514d8f7b9fc5970bdd94287905ef584::getLoader()
+#2 /home/esck4946/public_html/index.php(14): require('/home/esck4946/...')
+#3 {main}
+  thrown in /home/esck4946/laravel/vendor/composer/platform_check.php on line 26
+[13-Mar-2026 00:42:35 Asia/Jakarta] PHP Fatal error:  Uncaught RuntimeException: Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.4.0". You are running 7.4.33. in /home/esck4946/laravel/vendor/composer/platform_check.php:26
+Stack trace:
+#0 /home/esck4946/laravel/vendor/composer/autoload_real.php(25): require()
+#1 /home/esck4946/laravel/vendor/autoload.php(22): ComposerAutoloaderInitc514d8f7b9fc5970bdd94287905ef584::getLoader()
+#2 /home/esck4946/public_html/index.php(14): require('/home/esck4946/...')
+#3 {main}
+  thrown in /home/esck4946/laravel/vendor/composer/platform_check.php on line 26
+[13-Mar-2026 00:42:35 Asia/Jakarta] PHP Fatal error:  Uncaught RuntimeException: Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.4.0". You are running 7.4.33. in /home/esck4946/laravel/vendor/composer/platform_check.php:26
+Stack trace:
+#0 /home/esck4946/laravel/vendor/composer/autoload_real.php(25): require()
+#1 /home/esck4946/laravel/vendor/autoload.php(22): ComposerAutoloaderInitc514d8f7b9fc5970bdd94287905ef584::getLoader()
+#2 /home/esck4946/public_html/index.php(14): require('/home/esck4946/...')
+#3 {main}
+  thrown in /home/esck4946/laravel/vendor/composer/platform_check.php on line 26
+[13-Mar-2026 00:42:35 Asia/Jakarta] PHP Fatal error:  Uncaught RuntimeException: Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.4.0". You are running 7.4.33. in /home/esck4946/laravel/vendor/composer/platform_check.php:26
+Stack trace:
+#0 /home/esck4946/laravel/vendor/composer/autoload_real.php(25): require()
+#1 /home/esck4946/laravel/vendor/autoload.php(22): ComposerAutoloaderInitc514d8f7b9fc5970bdd94287905ef584::getLoader()
+#2 /home/esck4946/public_html/index.php(14): require('/home/esck4946/...')
+#3 {main}
+  thrown in /home/esck4946/laravel/vendor/composer/platform_check.php on line 26
+[13-Mar-2026 06:56:05 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 20480 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Css/Style.php on line 1465
+[13-Mar-2026 11:11:56 asia/jakarta] PHP Fatal error:  Cannot redeclare class App\Http\Controllers\RiwayatPublikController (previously declared in /home/esck4946/laravel/app/Http/Controllers/RiwayatPublikController.php:10) in /home/esck4946/laravel/storage/framework/views/8f6f56a9747fc4f0003b9db5d7e1090a.php on line 8
+[13-Mar-2026 12:40:12 asia/jakarta] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home/esck4946/laravel/app/Http/Controllers/SettingController.php on line 4
+[13-Mar-2026 12:40:13 asia/jakarta] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home/esck4946/laravel/app/Http/Controllers/SettingController.php on line 4
+[13-Mar-2026 12:40:15 asia/jakarta] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home/esck4946/laravel/app/Http/Controllers/SettingController.php on line 4
+[15-Mar-2026 07:07:53 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 20480 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Css/Style.php on line 1479
+[16-Mar-2026 14:11:37 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 163840 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Cellmap.php on line 634
+[16-Mar-2026 14:11:52 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 163840 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Cellmap.php on line 634
+[16-Mar-2026 14:12:39 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 163840 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Cellmap.php on line 634
+[16-Mar-2026 14:12:43 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 163840 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Cellmap.php on line 634
+[16-Mar-2026 14:14:22 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 163840 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Cellmap.php on line 634
+[16-Mar-2026 14:15:00 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 163840 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Cellmap.php on line 634
+[16-Mar-2026 14:15:40 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 163840 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Cellmap.php on line 634
+[16-Mar-2026 14:16:14 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 163840 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Cellmap.php on line 634
+[16-Mar-2026 14:17:45 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 163840 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Cellmap.php on line 634
+[16-Mar-2026 14:17:50 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 163840 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Cellmap.php on line 634
+[16-Mar-2026 14:49:47 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 20480 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Css/Style.php on line 1855
+[17-Mar-2026 12:00:42 asia/jakarta] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 20480 bytes) in /home/esck4946/laravel/vendor/dompdf/dompdf/src/Css/Style.php on line 1479

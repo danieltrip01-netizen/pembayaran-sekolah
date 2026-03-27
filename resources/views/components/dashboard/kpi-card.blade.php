@@ -22,9 +22,10 @@
     'valueVariant' => 'navy',
     'sub'          => null,
     'watermark'    => null,
+    'class'        => '',     
 ])
 
-<div class="db-card kpi-card">
+<div class="db-card kpi-card {{$class}}">
     <div class="kpi-card__body">
 
         <div class="kpi-card__top">

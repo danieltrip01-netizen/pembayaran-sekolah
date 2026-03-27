@@ -39,257 +39,18 @@
     />
 @endif
 
-
-{{-- ════════════════════════════════════════════════════════
-     LAYOUT ADMIN YAYASAN
-════════════════════════════════════════════════════════ --}}
-@if($isAdmin)
-
-{{-- KPI Row ─────────────────────────────────────────────── --}}
-<div class="row g-3 mb-3">
-
-    {{-- Total Siswa --}}
-    <div class="col-6 col-xl-3">
-        <x-dashboard.kpi-card
-            icon="people-fill"
-            label="Total Siswa Aktif"
-            value="{{ number_format($totalSiswa) }}"
-            watermark="people-fill"
-        >
-            <x-slot:badge>
-                <span class="kpi-badge kpi-badge--blue">3 Jenjang</span>
-            </x-slot:badge>
-
-            <div class="mt-2 d-flex gap-1 flex-wrap">
-                <span class="badge-TK">TK {{ $siswaPerJenjang['TK'] ?? 0 }}</span>
-                <span class="badge-SD">SD {{ $siswaPerJenjang['SD'] ?? 0 }}</span>
-                <span class="badge-SMP">SMP {{ $siswaPerJenjang['SMP'] ?? 0 }}</span>
-            </div>
-        </x-dashboard.kpi-card>
-    </div>
-
-    {{-- Total Pemasukan --}}
-    <div class="col-6 col-xl-3">
-        <x-dashboard.kpi-card
-            icon="bank2"
-            iconVariant="yellow"
-            label="Total Pemasukan"
-            valueSize="md"
-            valueVariant="yellow"
-            value="Rp {{ number_format($totalPemasukan, 0, ',', '.') }}"
-            sub="{{ number_format($totalSetoran) }} setoran tercatat"
-            watermark="bank2"
-        >
-            <x-slot:badge>
-                <span class="kpi-badge kpi-badge--yellow">All time</span>
-            </x-slot:badge>
-        </x-dashboard.kpi-card>
-    </div>
-
-    {{-- Pemasukan Bulan Ini --}}
-    <div class="col-6 col-xl-3">
-        <x-dashboard.kpi-card
-            icon="arrow-up-circle-fill"
-            iconVariant="green"
-            label="Pemasukan Bulan Ini"
-            valueSize="md"
-            valueVariant="green"
-            value="Rp {{ number_format($pemasukanBulanIni, 0, ',', '.') }}"
-            sub="{{ $transaksiHariIni }} transaksi hari ini"
-            watermark="cash-stack"
-        >
-            <x-slot:badge>
-                <span class="kpi-badge kpi-badge--green">{{ now()->isoFormat('MMM Y') }}</span>
-            </x-slot:badge>
-        </x-dashboard.kpi-card>
-    </div>
-
-    {{-- Belum Bayar --}}
-    <div class="col-6 col-xl-3">
-        <x-dashboard.kpi-card
-            icon="exclamation-circle-fill"
-            iconVariant="red"
-            label="Belum Bayar Bulan Ini"
-            valueVariant="red"
-            value="{{ $jmlBelum }} <span class='text-unit'> siswa</span>"
-            watermark="exclamation-circle"
-        >
-            <x-slot:badge>
-                <span class="kpi-badge kpi-badge--{{ $badgeLunasVariant }}">{{ $pctLunas }}% lunas</span>
-            </x-slot:badge>
-
-            <div class="mt-2">
-                <x-dashboard.progress-bar :percent="$pctLunas" :colorVar="$progressColor" />
-                <div class="kpi-sub">{{ $totalSiswa - $jmlBelum }} dari {{ $totalSiswa }} sudah lunas</div>
-            </div>
-        </x-dashboard.kpi-card>
-    </div>
-
-</div>
-
-{{-- Row 2: Grafik (8) + Jenjang Breakdown (4) ────────────── --}}
-<div class="row g-3 mb-3">
-
-    <div class="col-lg-8">
-        <x-dashboard.card-panel
-            title="Grafik Pemasukan — TA {{ $tahunPelajaran?->nama ?? '-' }}"
-            icon="graph-up"
-            class="h-100"
-        >
-            <x-slot:headerRight>
-                <span class="grafik-total">
-                    Total: <strong>Rp {{ number_format(array_sum($grafikData['data']), 0, ',', '.') }}</strong>
-                </span>
-            </x-slot:headerRight>
-            <canvas id="grafikPemasukan" height="95"></canvas>
-        </x-dashboard.card-panel>
-    </div>
-
-    <div class="col-lg-4">
-        <x-dashboard.card-panel title="Pemasukan per Jenjang" icon="bar-chart-fill" class="h-100">
-            @php
-                $jData = [
-                    'TK'  => ['colorVar' => '#F59E0B',      'jumlah' => $pemasukanPerJenjang['TK']  ?? 0],
-                    'SD'  => ['colorVar' => 'var(--blue)',  'jumlah' => $pemasukanPerJenjang['SD']  ?? 0],
-                    'SMP' => ['colorVar' => 'var(--green)', 'jumlah' => $pemasukanPerJenjang['SMP'] ?? 0],
-                ];
-                $totalJ = array_sum(array_column($jData, 'jumlah')) ?: 1;
-                $maxJ   = max(array_column($jData, 'jumlah')) ?: 1;
-            @endphp
-
-            <div class="d-flex flex-column justify-content-between h-100">
-                <div>
-                    @foreach($jData as $j => $d)
-                    <div class="jenjang-row">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="badge-{{ $j }}">{{ $j }}</span>
-                                <span class="kpi-sub">{{ $siswaPerJenjang[$j] ?? 0 }} siswa</span>
-                            </div>
-                            <span class="jenjang-amount">
-                                Rp {{ number_format($d['jumlah'], 0, ',', '.') }}
-                            </span>
-                        </div>
-                        <x-dashboard.progress-bar
-                            :percent="round($d['jumlah'] / $maxJ * 100)"
-                            :colorVar="$d['colorVar']"
-                        />
-                        <div class="jenjang-pct">
-                            {{ round($d['jumlah'] / $totalJ * 100) }}% dari total
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-
-                <div class="mt-3">
-                    <div class="section-label">Aksi Cepat</div>
-                    <div class="row g-2">
-                        <div class="col-4">
-                            <x-dashboard.quick-btn href="{{ route('laporan.index') }}" icon="bar-chart"  iconClass="qb-icon--indigo" label="Laporan" />
-                        </div>
-                        <div class="col-4">
-                            <x-dashboard.quick-btn href="{{ route('setoran.index') }}" icon="wallet2"   iconClass="qb-icon--blue"   label="Setoran" />
-                        </div>
-                        <div class="col-4">
-                            <x-dashboard.quick-btn href="{{ route('siswa.index') }}"  icon="people"    iconClass="qb-icon--navy"   label="Siswa" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </x-dashboard.card-panel>
-    </div>
-
-</div>
-
-{{-- Row 3: Belum Bayar (5) + Setoran Terbaru (7) ─────────── --}}
-<div class="row g-3">
-
-    <div class="col-lg-5">
-        <x-dashboard.card-panel
-            title="Belum Bayar {{ now()->isoFormat('MMMM Y') }}"
-            icon="exclamation-circle"
-            iconClass="text-danger"
-            :scrollable="true"
-        >
-            <x-slot:titleExtra>
-                <span class="kpi-badge kpi-badge--red ms-1">{{ $jmlBelum }}</span>
-            </x-slot:titleExtra>
-
-            @forelse($siswaBelumBayar as $s)
-                <x-dashboard.feed-siswa-item :siswa="$s" :showJenjang="true" />
-            @empty
-                <x-dashboard.empty-state icon="check-circle-fill" iconVariant="green" message="Semua sudah lunas!" />
-            @endforelse
-        </x-dashboard.card-panel>
-    </div>
-
-    <div class="col-lg-7">
-        <x-dashboard.card-panel
-            title="Setoran Terbaru"
-            icon="wallet2"
-            :seeAllHref="route('setoran.index')"
-            seeAllLabel="Lihat Semua"
-            :noPad="true"
-        >
-            <div class="table-responsive">
-                <table class="table tbl-setoran">
-                    <thead>
-                        <tr>
-                            <th>Kode</th><th>Tanggal</th><th>Jenjang</th>
-                            <th class="text-end">Grand Total</th><th>Petugas</th>
-                            <th style="width:48px"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($setoranTerbaru as $s)
-                        <tr>
-                            <td class="tbl-setoran__kode">{{ $s->kode_setoran }}</td>
-                            <td class="tbl-setoran__date">{{ $s->tanggal_setoran->format('d/m/Y') }}</td>
-                            <td><span class="badge-{{ $s->jenjang }}">{{ $s->jenjang }}</span></td>
-                            <td class="text-end tbl-setoran__amount">
-                                Rp {{ number_format($s->total_keseluruhan, 0, ',', '.') }}
-                            </td>
-                            <td class="tbl-setoran__user">{{ $s->user->name ?? '—' }}</td>
-                            <td>
-                                <a href="{{ route('setoran.show', $s) }}"
-                                   class="btn btn-sm btn-outline-secondary" title="Detail">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-4 tbl-setoran__date">Belum ada setoran.</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </x-dashboard.card-panel>
-    </div>
-
-</div>
-
-
-{{-- ════════════════════════════════════════════════════════
-     LAYOUT PETUGAS JENJANG
-════════════════════════════════════════════════════════ --}}
-@else
-
 {{-- KPI Row ─────────────────────────────────────────────── --}}
 <div class="row g-3 mb-3">
 
     {{-- Siswa Jenjang --}}
     <div class="col-6 col-xl-3">
         <x-dashboard.kpi-card
+            class="h-100"
             icon="people-fill"
-            label="Siswa Aktif {{ $jenjang }}"
+            label="Siswa Aktif"
             value="{{ number_format($totalSiswa) }}"
             watermark="people-fill"
         >
-            <x-slot:badge>
-                <span class="badge-{{ $jenjang }}">{{ $jenjang }}</span>
-            </x-slot:badge>
             <div class="mt-2">
                 <x-dashboard.progress-bar :percent="$pctLunas" colorVar="var(--green)" />
                 <div class="kpi-sub">{{ $totalSiswa - $jmlBelum }} dari {{ $totalSiswa }} lunas bulan ini</div>
@@ -300,6 +61,7 @@
     {{-- Pemasukan Bulan Ini --}}
     <div class="col-6 col-xl-3">
         <x-dashboard.kpi-card
+            class="h-100"
             icon="arrow-up-circle-fill"
             iconVariant="green"
             label="Pemasukan Bulan Ini"
@@ -318,6 +80,7 @@
     {{-- Belum Disetor --}}
     <div class="col-6 col-xl-3">
         <x-dashboard.kpi-card
+            class="h-100"
             icon="clock-history"
             iconVariant="orange"
             label="Belum Disetor"
@@ -343,6 +106,7 @@
     {{-- Belum Bayar --}}
     <div class="col-6 col-xl-3">
         <x-dashboard.kpi-card
+            class="h-100"
             icon="person-x-fill"
             iconVariant="red"
             label="Belum Bayar Bulan Ini"
@@ -364,15 +128,16 @@
 
     <div class="col-lg-8">
         <x-dashboard.card-panel
-            title="Pemasukan {{ $jenjang }} — TA {{ $tahunPelajaran?->nama ?? '-' }}"
+            title="Pemasukan — T.A. {{ $tahunPelajaran?->nama ?? '-' }}"
             icon="graph-up"
+            class="h-100"
         >
             <x-slot:headerRight>
                 <span class="grafik-total">
                     Total: <strong>Rp {{ number_format(array_sum($grafikData['data']), 0, ',', '.') }}</strong>
                 </span>
             </x-slot:headerRight>
-            <canvas id="grafikPemasukan" height="95"></canvas>
+            <canvas id="grafikPemasukan" style="width:100%;flex:1;min-height:0"></canvas>
         </x-dashboard.card-panel>
     </div>
 
@@ -404,57 +169,106 @@
                 </div>
             </div>
 
-            @if($belumDisetorCount > 0)
-            <div class="reminder-box">
-                <i class="bi bi-bell-fill reminder-box__icon"></i>
-                <div>
-                    <div class="reminder-box__title">{{ $belumDisetorCount }} transaksi belum disetor</div>
-                    <div class="reminder-box__amount">
-                        Total Rp {{ number_format($belumDisetorNominal, 0, ',', '.') }}
-                    </div>
-                    <a href="{{ route('setoran.create') }}" class="reminder-box__link">Setor sekarang →</a>
-                </div>
-            </div>
-            @endif
+           
         </x-dashboard.card-panel>
     </div>
 
 </div>
 
-{{-- Row 3: Belum Bayar (5) + Pembayaran Terbaru (4) + Setoran Terbaru (3) --}}
+{{-- Row 3: Lunas Semester (5) + Pembayaran Terbaru (4) + Setoran Terbaru (3) --}}
 <div class="row g-3">
 
-    <div class="col-lg-5">
+    <div class="col-lg-5 d-flex flex-column">
         <x-dashboard.card-panel
-            title="Belum Bayar {{ now()->isoFormat('MMM Y') }}"
-            icon="person-x-fill"
-            iconClass="text-danger"
+            title="Status Tagihan"
+            icon="person-check-fill"
+            iconClass="text-success"
+            class="h-100"
             :scrollable="true"
         >
-            <x-slot:titleExtra>
-                <span class="kpi-badge kpi-badge--red ms-1">{{ $jmlBelum }}</span>
-            </x-slot:titleExtra>
             <x-slot:headerRight>
-                <x-dashboard.progress-bar :percent="$pctLunas" :colorVar="$progressColor" />
+                <div class="d-flex align-items-center gap-2">
+                    {{-- Filter Semester --}}
+                    <div class="btn-group btn-group-sm" role="group" id="filterSemesterGroup">
+                        <button type="button"
+                            class="btn btn-outline-success filter-smt-btn active"
+                            data-filter="lunas"
+                            title="Siswa yang sudah lunas penuh 1 tahun (Jul–Jun)">
+                            ✓ Lunas
+                        </button>
+                        <button type="button"
+                            class="btn btn-outline-danger filter-smt-btn"
+                            data-filter="smt1"
+                            title="Siswa yang belum lunas semester 1 (Jul–Des)">
+                            Smt 1
+                        </button>
+                        <button type="button"
+                            class="btn btn-outline-danger filter-smt-btn"
+                            data-filter="smt2"
+                            title="Siswa yang belum lunas semester 2 (Jan–Jun)">
+                            Smt 2
+                        </button>
+                    </div>
+                    {{-- Tombol Salin --}}
+                    <button type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        id="btnSalinNama"
+                        title="Salin daftar nama siswa">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
             </x-slot:headerRight>
 
-            @forelse($siswaBelumBayar as $s)
-                <x-dashboard.feed-siswa-item :siswa="$s" />
-            @empty
-                <x-dashboard.empty-state
-                    icon="check-circle-fill"
-                    iconVariant="green"
-                    message="Semua sudah lunas!"
-                    sub="Tidak ada tunggakan bulan ini."
-                />
-            @endforelse
+            {{-- List: Lunas Semester --}}
+            <div id="listLunas" class="semester-list">
+                @forelse($siswaLunasSemester as $s)
+                    <x-dashboard.feed-siswa-item :siswa="$s" />
+                @empty
+                    <x-dashboard.empty-state
+                        icon="hourglass-split"
+                        iconVariant="warning"
+                        message="Belum ada yang lunas."
+                        sub="Belum ada siswa yang menyelesaikan semua 12 bulan."
+                    />
+                @endforelse
+            </div>
+
+            {{-- List: Belum Lunas Semester 1 --}}
+            <div id="listBelumSmt1" class="semester-list d-none">
+                @forelse($siswaBelumLunasSmt1 as $s)
+                    <x-dashboard.feed-siswa-item :siswa="$s" />
+                @empty
+                    <x-dashboard.empty-state
+                        icon="check-circle-fill"
+                        iconVariant="green"
+                        message="Semua sudah lunas semester 1!"
+                        sub="Tidak ada tunggakan di semester 1."
+                    />
+                @endforelse
+            </div>
+
+            {{-- List: Belum Lunas Semester 2 --}}
+            <div id="listBelumSmt2" class="semester-list d-none">
+                @forelse($siswaBelumLunasSmt2 as $s)
+                    <x-dashboard.feed-siswa-item :siswa="$s" />
+                @empty
+                    <x-dashboard.empty-state
+                        icon="check-circle-fill"
+                        iconVariant="green"
+                        message="Semua sudah lunas semester 2!"
+                        sub="Tidak ada tunggakan di semester 2."
+                    />
+                @endforelse
+            </div>
+
         </x-dashboard.card-panel>
     </div>
 
-    <div class="col-lg-4">
+    <div class="col-lg-4 d-flex flex-column">
         <x-dashboard.card-panel
             title="Pembayaran Terbaru"
             icon="receipt"
+            class="h-100"
             :seeAllHref="route('pembayaran.index')"
             :scrollable="true"
         >
@@ -466,10 +280,11 @@
         </x-dashboard.card-panel>
     </div>
 
-    <div class="col-lg-3">
+    <div class="col-lg-3 d-flex flex-column">
         <x-dashboard.card-panel
             title="Setoran Terbaru"
             icon="wallet2"
+            class="h-100"
             :seeAllHref="route('setoran.index')"
             :scrollable="true"
         >
@@ -482,8 +297,6 @@
     </div>
 
 </div>
-
-@endif {{-- end role split --}}
 
 @endsection
 
@@ -515,7 +328,7 @@ new Chart(ctx, {
     },
     options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         plugins: {
             legend: { display: false },
             tooltip: {
@@ -550,5 +363,92 @@ new Chart(ctx, {
         }
     }
 });
+// ── Filter Semester & Salin Nama ─────────────────────────────────────────
+(function () {
+    const countMap = {
+        lunas : {{ $jmlLunasSemester }},
+        smt1  : {{ $siswaBelumLunasSmt1->count() }},
+        smt2  : {{ $siswaBelumLunasSmt2->count() }},
+    };
+
+    const listMap = {
+        lunas : document.getElementById('listLunas'),
+        smt1  : document.getElementById('listBelumSmt1'),
+        smt2  : document.getElementById('listBelumSmt2'),
+    };
+
+    const badge  = document.getElementById('badgeJmlSiswa');
+    const btnCopy = document.getElementById('btnSalinNama');
+    let activeFilter = 'lunas';
+
+    // Warna badge sesuai filter
+    const badgeClass = { lunas: 'kpi-badge--green', smt1: 'kpi-badge--red', smt2: 'kpi-badge--red' };
+
+    document.getElementById('filterSemesterGroup')?.addEventListener('click', function (e) {
+        const btn = e.target.closest('.filter-smt-btn');
+        if (!btn) return;
+
+        activeFilter = btn.dataset.filter;
+
+        // Toggle active button style
+        this.querySelectorAll('.filter-smt-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Toggle list visibility
+        Object.entries(listMap).forEach(([key, el]) => {
+            el?.classList.toggle('d-none', key !== activeFilter);
+        });
+
+        // Update badge warna & angka
+        if (badge) {
+            badge.textContent = countMap[activeFilter] ?? 0;
+            badge.className   = 'kpi-badge ms-1 ' + (badgeClass[activeFilter] ?? 'kpi-badge--green');
+        }
+    });
+
+    // Salin daftar nama siswa yang sedang tampil — dikelompokkan per kelas
+    btnCopy?.addEventListener('click', function () {
+        const activeList = listMap[activeFilter];
+        if (!activeList) return;
+
+        const items = [...activeList.querySelectorAll('.siswa-item-wrap')];
+
+        if (!items.length) {
+            btnCopy.innerHTML = '<i class="bi bi-clipboard-x"></i>';
+            setTimeout(() => btnCopy.innerHTML = '<i class="bi bi-clipboard"></i>', 1500);
+            return;
+        }
+
+        // Kelompokkan per kelas
+        const groups = new Map();
+        items.forEach(el => {
+            const kelas = el.dataset.kelas || 'Tanpa Kelas';
+            const nama  = el.dataset.nama  || '-';
+            if (!groups.has(kelas)) groups.set(kelas, []);
+            groups.get(kelas).push(nama);
+        });
+
+        // Urutkan kelas dari terendah (natural sort: "Kelas 1A" < "Kelas 2B" < "Kelas 10A")
+        const sortedGroups = [...groups.entries()].sort(([a], [b]) =>
+            a.localeCompare(b, 'id', { numeric: true, sensitivity: 'base' })
+        );
+
+        const labelMap = { lunas: 'Lunas Penuh (1 Tahun)', smt1: 'Belum Lunas Smt 1', smt2: 'Belum Lunas Smt 2' };
+        const lines    = [`=== ${labelMap[activeFilter]} ===`];
+
+        sortedGroups.forEach(([kelas, namaList]) => {
+            lines.push(`\n[ ${kelas} ]`);
+            namaList.forEach((nama, i) => lines.push(`${i + 1}. ${nama}`));
+        });
+
+        navigator.clipboard.writeText(lines.join('\n')).then(() => {
+            btnCopy.innerHTML = '<i class="bi bi-clipboard-check text-success"></i>';
+            setTimeout(() => btnCopy.innerHTML = '<i class="bi bi-clipboard"></i>', 2000);
+        }).catch(() => {
+            btnCopy.innerHTML = '<i class="bi bi-clipboard-x text-danger"></i>';
+            setTimeout(() => btnCopy.innerHTML = '<i class="bi bi-clipboard"></i>', 2000);
+        });
+    });
+})();
 </script>
 @endpush

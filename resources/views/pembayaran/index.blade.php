@@ -104,41 +104,38 @@
 
 {{-- Summary Bar --}}
 <div class="row g-2 mb-3">
-    @php
-        $col = $pembayaran->getCollection();
-    @endphp
     <div class="col-6 col-md-3">
-        <div class="rounded-3 p-3 text-center"
+        <div class="rounded-3 p-3 text-center h-100"
              style="background:var(--surface);border:1px solid var(--border);">
             <div class="fw-bold" style="font-size:1.25rem;color:var(--navy);">
-                {{ $pembayaran->total() }}
+                {{ number_format($summary->total_transaksi) }}
             </div>
             <div style="color:var(--ink-muted);font-size:.8rem;">Total Transaksi</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="rounded-3 p-3 text-center"
+        <div class="rounded-3 p-3 text-center h-100"
              style="background:var(--surface);border:1px solid var(--border);">
             <div class="fw-600" style="font-size:.9rem;color:var(--green);">
-                Rp {{ number_format($col->sum(fn($p) => (float)$p->total_bayar), 0, ',', '.') }}
+                Rp {{ number_format($summary->total_rupiah, 0, ',', '.') }}
             </div>
-            <div style="color:var(--ink-muted);font-size:.8rem;">Total (halaman ini)</div>
+            <div style="color:var(--ink-muted);font-size:.8rem;">Total Rupiah</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="rounded-3 p-3 text-center"
+        <div class="rounded-3 p-3 text-center h-100"
              style="background:var(--surface);border:1px solid var(--border);">
             <div class="fw-bold" style="font-size:1.15rem;color:var(--yellow);">
-                {{ $col->whereNull('setoran_id')->count() }}
+                {{ number_format($summary->belum_disetor) }}
             </div>
             <div style="color:var(--ink-muted);font-size:.8rem;">Belum Disetor</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="rounded-3 p-3 text-center"
+        <div class="rounded-3 p-3 text-center h-100"
              style="background:var(--surface);border:1px solid var(--border);">
             <div class="fw-bold" style="font-size:1.15rem;color:#0369a1;">
-                {{ $col->whereNotNull('setoran_id')->count() }}
+                {{ number_format($summary->sudah_disetor) }}
             </div>
             <div style="color:var(--ink-muted);font-size:.8rem;">Sudah Disetor</div>
         </div>
@@ -152,7 +149,7 @@
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th class="ps-4" style="width:45px">No</th>
+                        <th>No</th>
                         <th>Kode</th>
                         <th>Tanggal</th>
                         <th>Nama Siswa</th>
@@ -161,8 +158,7 @@
                         <th class="text-end">Total</th>
                         <th>Kredit</th>
                         <th>Status Setor</th>
-                        <th>Petugas</th>
-                        <th class="pe-4 text-end" style="width:120px">Aksi</th>
+                        <th class="text-center" style="width:120px">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -180,7 +176,7 @@
                         <td>
                             <a href="{{ route('siswa.show', $p->siswa_id) }}"
                                class="text-decoration-none fw-600"
-                               style="color:var(--ink);">
+                               style="color:var(--blue);">
                                 {{ $p->siswa->nama ?? '—' }}
                             </a>
                             
@@ -246,9 +242,6 @@
                                 </span>
                             @endif
                         </td>
-                        <td class="small" style="color:var(--ink-muted);">
-                            {{ $p->user->nama_lengkap ?? $p->user->name ?? '—' }}
-                        </td>
                         <td class="pe-4 text-end">
                             <div class="d-flex gap-1 flex-nowrap justify-content-end">
                                 <a href="{{ route('pembayaran.show', $p) }}"
@@ -299,10 +292,6 @@
         @if($pembayaran->hasPages())
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 px-4 py-3 border-top"
              style="background:var(--bg);">
-            <div style="color:var(--ink-muted);font-size:.82rem;">
-                Menampilkan <strong>{{ $pembayaran->firstItem() }}</strong>–<strong>{{ $pembayaran->lastItem() }}</strong>
-                dari <strong>{{ $pembayaran->total() }}</strong> data
-            </div>
             {{ $pembayaran->links('pagination::bootstrap-5') }}
         </div>
         @endif

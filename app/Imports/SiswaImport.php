@@ -6,6 +6,7 @@ use App\Models\Kelas;
 use App\Models\Siswa;
 use App\Models\SiswaKelas;
 use App\Models\TahunPelajaran;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -52,7 +53,8 @@ class SiswaImport implements
 
     public function __construct(
         private ?string $userJenjang = null,
-        string $mode = 'new'
+        string $mode = 'new',
+        private ?Carbon $tanggalMasuk = null,   // ← tanggal_mulai T.A. aktif dari controller
     ) {
         $this->mode = in_array($mode, ['new', 'update']) ? $mode : 'new';
 
@@ -142,12 +144,19 @@ class SiswaImport implements
             }
 
             // Update data dasar siswa jika ada perubahan
-            $siswa->update([
+            $updateData = [
                 'nama'    => $nama,
                 'jenjang' => $jenjang,
                 'status'  => $row['status'] ?? $siswa->status,
-                'tanggal_masuk' => $row['tanggal_masuk'] ?? $this->awalTahunAjaran(),
-            ]);
+                'tanggal_masuk' => $row['tanggal_masuk'] ?? $this->resolvedTanggalMasuk(),
+            ];
+
+            // Update no_hp_wali hanya jika kolom ada dalam file
+            if (array_key_exists('no_hp_wali', $row)) {
+                $updateData['no_hp_wali'] = $this->sanitizePhone($row['no_hp_wali'] ?? null);
+            }
+
+            $siswa->update($updateData);
 
             // Buat atau update record siswa_kelas untuk tahun pelajaran aktif
             SiswaKelas::updateOrCreate(
@@ -182,11 +191,12 @@ class SiswaImport implements
             'id_siswa'       => $this->makeId($jenjang),
             'nama'           => $nama,
             'jenjang'        => $jenjang,
-            'tanggal_masuk'  => $this->awalTahunAjaran(),
+            'tanggal_masuk'  => $this->resolvedTanggalMasuk(),
             'tanggal_keluar' => null,
             'status'         => 'aktif',
             'keterangan'     => 'Imported via Excel',
             'saldo_kredit'   => 0,
+            'no_hp_wali'     => $this->sanitizePhone($row['no_hp_wali'] ?? null),
         ]);
 
         SiswaKelas::create([
@@ -218,6 +228,7 @@ class SiswaImport implements
             '*.nominal_pembayaran' => ['nullable', 'numeric', 'min:0'],
             '*.nominal_donator'    => ['nullable', 'numeric', 'min:0'],
             '*.nominal_mamin'      => ['nullable', 'numeric', 'min:0'],
+            '*.no_hp_wali'         => ['nullable', 'string', 'max:20'],
         ]);
     }
 
@@ -274,10 +285,32 @@ class SiswaImport implements
         };
     }
 
-    private function awalTahunAjaran(): string
+    /**
+     * Tanggal masuk default: gunakan tanggal_mulai T.A. aktif yang dikirim dari controller.
+     * Fallback ke 1 Juli tahun ajaran berjalan jika tidak tersedia.
+     */
+    private function resolvedTanggalMasuk(): string
     {
-        $tahun = (int) date('m') >= 7 ? (int) date('Y') : (int) date('Y') - 2;
+        if ($this->tanggalMasuk) {
+            return $this->tanggalMasuk->format('Y-m-d');
+        }
+
+        // Fallback: hitung manual (Agustus ke atas → tahun ini, sebelumnya → tahun lalu)
+        $tahun = (int) date('m') >= 7 ? (int) date('Y') : (int) date('Y') - 1;
         return $tahun . '-07-01';
+    }
+
+    /**
+     * Normalkan nomor HP: buang karakter selain angka/+/-/spasi.
+     * Return null jika kosong.
+     */
+    private function sanitizePhone(mixed $raw): ?string
+    {
+        if ($raw === null || trim((string) $raw) === '') {
+            return null;
+        }
+        $clean = preg_replace('/[^\d+\-\s]/', '', trim((string) $raw));
+        return $clean !== '' ? $clean : null;
     }
 
     private function parseNominal(mixed $value): float

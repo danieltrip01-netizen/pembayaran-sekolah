@@ -22,33 +22,24 @@ class LaporanController extends Controller
         $tahunAktif         = TahunPelajaran::aktif();
         $tahunPelajaranList = TahunPelajaran::orderByDesc('tanggal_mulai')->get();
 
-        // Default: gunakan tahun pelajaran aktif jika tidak ada request
         $defaultTahunId   = $tahunAktif?->id ?? '';
         $tahunPelajaranId = $request->get('tahun_pelajaran_id', $defaultTahunId);
 
         $filter = [
             'tahun_pelajaran_id' => $tahunPelajaranId,
-
-            // Admin yayasan → jenjang bisa kosong (tampilkan semua).
-            // Admin jenjang  → paksa jenjangnya sendiri, tidak bisa diubah.
-            'jenjang'        => $userJenjang ?? $request->get('jenjang', ''),
-
-            // Default bulan KOSONG supaya tampilkan SEMUA data.
-            'bulan'          => $request->get('bulan', ''),
-
-            'kelas'          => $request->get('kelas', ''),
-            'tanggal_dari'   => $request->get('tanggal_dari', ''),
-            'tanggal_sampai' => $request->get('tanggal_sampai', ''),
+            'jenjang'            => $userJenjang ?? $request->get('jenjang', ''),
+            'bulan'              => $request->get('bulan', now()->format('Y-m')),
+            'kelas'              => $request->get('kelas', ''),
+            'tanggal_dari'       => $request->get('tanggal_dari', ''),
+            'tanggal_sampai'     => $request->get('tanggal_sampai', ''),
         ];
 
         $pembayaran = $this->buildQuery($filter)->get();
+        $rekap      = $this->hitungRekap($pembayaran);
 
-        $rekap = $this->hitungRekap($pembayaran);
-
-        // ── perKelas: ambil nama kelas dari relasi siswaKelas ─────────────────
-        // Kelas disimpan di tabel siswa_kelas, bukan di kolom siswa.kelas
+        // ── perKelas ──────────────────────────────────────────────────────────
         $tahunId  = $filter['tahun_pelajaran_id'];
-        $perKelas = $pembayaran 
+        $perKelas = $pembayaran
             ->groupBy(fn($p) =>
                 $p->siswa
                     ?->siswaKelas
@@ -62,27 +53,23 @@ class LaporanController extends Controller
             ])
             ->sortKeys();
 
-        // ── filterAktif: label filter yang sedang aktif (untuk tampilan UI) ───
+        // ── filterAktif ───────────────────────────────────────────────────────
         $filterAktif = [];
-        if (!empty($filter['jenjang']))            $filterAktif[] = 'Jenjang: ' . $filter['jenjang'];
-        if (!empty($filter['kelas']))              $filterAktif[] = 'Kelas: '   . $filter['kelas'];
-        if (!empty($filter['bulan']))              $filterAktif[] = 'Tgl Transaksi: ' . \Carbon\Carbon::createFromFormat('Y-m', $filter['bulan'])->isoFormat('MMMM Y');
-        if (!empty($filter['tanggal_dari']))       $filterAktif[] = 'Dari: '    . $filter['tanggal_dari'];
-        if (!empty($filter['tanggal_sampai']))     $filterAktif[] = 'Sampai: '  . $filter['tanggal_sampai'];
+        if (!empty($filter['jenjang']))        $filterAktif[] = 'Jenjang: '        . $filter['jenjang'];
+        if (!empty($filter['kelas']))          $filterAktif[] = 'Kelas: '          . $filter['kelas'];
+        if (!empty($filter['bulan']))          $filterAktif[] = 'Tgl Transaksi: '  . \Carbon\Carbon::createFromFormat('Y-m', $filter['bulan'])->isoFormat('MMMM Y');
+        if (!empty($filter['tanggal_dari']))   $filterAktif[] = 'Dari: '           . $filter['tanggal_dari'];
+        if (!empty($filter['tanggal_sampai'])) $filterAktif[] = 'Sampai: '         . $filter['tanggal_sampai'];
 
-        // Admin jenjang hanya lihat jenjangnya sendiri; admin yayasan bisa filter semua
         $jenjangOptions = $userJenjang ? [$userJenjang] : ['TK', 'SD', 'SMP'];
 
-        // ── Opsi kelas berdasarkan jenjang yang aktif / dipilih ───────────────
-        // Jika jenjang sudah terkunci (admin jenjang) atau dipilih via filter,
-        // tampilkan hanya kelas yang relevan. Jika semua jenjang → tampilkan semua.
         $kelasByJenjang = [
             'TK'  => ['A', 'B'],
             'SD'  => ['I', 'II', 'III', 'IV', 'V', 'VI'],
             'SMP' => ['VII', 'VIII', 'IX'],
         ];
 
-        $activeJenjang = $filter['jenjang']; // kosong = semua jenjang
+        $activeJenjang = $filter['jenjang'];
         $kelasOptions  = $activeJenjang
             ? ($kelasByJenjang[$activeJenjang] ?? [])
             : array_merge(...array_values($kelasByJenjang));
@@ -164,9 +151,6 @@ class LaporanController extends Controller
         $query = Pembayaran::with([
                 'user',
                 'pembayaranBulan',
-                // FIX: eager-load siswaKelas + kelas hanya untuk tahun pelajaran
-                // yang sedang difilter supaya data kelas yang ditampilkan
-                // selalu sesuai dengan tahun yang dipilih
                 'siswa' => fn($q) => $q->with([
                     'siswaKelas' => fn($sq) => $sq
                         ->with('kelas')
@@ -175,35 +159,24 @@ class LaporanController extends Controller
                         ),
                 ]),
             ])
-
-            // ── Filter Tahun Pelajaran (wajib, default = tahun aktif) ─────────
             ->when(!empty($tahunId), fn($q) =>
                 $q->where('tahun_pelajaran_id', $tahunId)
             )
-
-            // ── Filter Jenjang ───────────────────────────────────────────────
-            // Kolom 'jenjang' masih ada di tabel siswa → aman
             ->when(!empty($filter['jenjang']), fn($q) =>
                 $q->whereHas('siswa', fn($sq) =>
                     $sq->where('jenjang', $filter['jenjang'])
                 )
             )
-
-            // ── Filter Kelas ─────────────────────────────────────────────────
-            // FIX: kolom 'kelas' sudah TIDAK ada di tabel siswa.
-            // Kelas disimpan di tabel siswa_kelas (relasi) → kelas.nama
             ->when(!empty($filter['kelas']), fn($q) =>
                 $q->whereHas('siswa.siswaKelas', fn($sq) =>
                     $sq->whereHas('kelas', fn($kq) =>
-                        $kq->where('nama', $filter['kelas'] )
+                        $kq->where('nama', $filter['kelas'])
                     )
                     ->when(!empty($tahunId), fn($sq2) =>
                         $sq2->where('tahun_pelajaran_id', $tahunId)
                     )
                 )
             )
-
-            // ── Filter Tanggal ───────────────────────────────────────────────
             ->when(!empty($filter['tanggal_dari']), fn($q) =>
                 $q->where('tanggal_bayar', '>=', $filter['tanggal_dari'])
             )
@@ -211,8 +184,6 @@ class LaporanController extends Controller
                 $q->where('tanggal_bayar', '<=', $filter['tanggal_sampai'])
             );
 
-        // ── Filter Bulan: berdasarkan tanggal_bayar (bukan bulan yang dibayar) ─
-        // Format bulan = 'Y-m' (dari <input type="month">)
         if (!empty($filter['bulan']) && empty($filter['tanggal_dari']) && empty($filter['tanggal_sampai'])) {
             [$tahunBulan, $blnBulan] = explode('-', $filter['bulan']);
             $query->whereYear('tanggal_bayar', $tahunBulan)
@@ -225,36 +196,36 @@ class LaporanController extends Controller
     private function hitungRekap($pembayaran): array
     {
         return [
-            'total_nominal'  => $pembayaran->sum(fn($p) => $p->nominal_per_bulan * $p->jumlah_bulan),
-            'total_donator'  => $pembayaran->sum('nominal_donator'),
-            'total_mamin'    => $pembayaran->sum('nominal_mamin'),
-            'total_semua'    => $pembayaran->sum('total_bayar'),
-            'jumlah_record'  => $pembayaran->count(),
+            'total_nominal' => $pembayaran->sum(fn($p) => $p->nominal_per_bulan * $p->jumlah_bulan),
+            'total_donator' => $pembayaran->sum('nominal_donator'),
+            'total_mamin'   => $pembayaran->sum('nominal_mamin'),
+            'total_semua'   => $pembayaran->sum('total_bayar'),
+            'jumlah_record' => $pembayaran->count(),
         ];
     }
 
     private function getTahunLabel(?string $tahunPelajaranId): string
     {
-        if (empty($tahunPelajaranId)) {
-            return 'Semua Tahun';
-        }
-
+        if (empty($tahunPelajaranId)) return 'Semua Tahun';
         $tahun = TahunPelajaran::find($tahunPelajaranId);
-
         return $tahun ? $tahun->nama : 'Semua Tahun';
     }
 
     /**
-     * Bangun array data setting instansi untuk view cetak.
-     * Jika $jenjang kosong → mode yayasan (pakai data global).
-     * Jika $jenjang terisi → mode per-jenjang (gabungkan global + jenjang).
+     * Bangun array $settingData untuk view cetak.
+     *
+     * Setiap sekolah menyimpan datanya sendiri (tidak ada global setting).
+     *
+     * • $jenjang kosong  → mode yayasan: ambil nama_yayasan + alamat dari SD
+     *                       sebagai referensi (atau fallback jika belum diisi),
+     *                       tanpa logo.
+     * • $jenjang terisi  → mode per-jenjang: semua data dari setting jenjang tsb.
      */
     private function buildSettingData(string $jenjang): array
     {
-        $all    = Setting::allIndexed();
-        $global = $all['global'];
+        $all = Setting::allIndexed(); // ['TK' => ..., 'SD' => ..., 'SMP' => ...]
 
-        // Konversi file ke base64 agar DomPDF bisa render gambar
+        // Helper: konversi path storage → base64 data URI untuk DomPDF
         $toBase64 = function (?string $path): ?string {
             if (!$path || !Storage::disk('public')->exists($path)) return null;
             $mime = Storage::disk('public')->mimeType($path);
@@ -262,57 +233,60 @@ class LaporanController extends Controller
             return "data:{$mime};base64,{$data}";
         };
 
-        $namaYayasan = $global->nama_yayasan  ?: 'Yayasan Pendidikan Kristen';
-        $alamat      = collect([$global->alamat, $global->kota])->filter()->join(', ') ?: 'Lasem';
-        $telepon     = $global->telepon       ?: '';
-        $kota        = $global->kota          ?: 'Lasem';
-
         if (empty($jenjang)) {
             // ── Mode Yayasan ──────────────────────────────────────────────────
+            // Tidak ada global setting; gunakan SD sebagai referensi data yayasan,
+            // dengan fallback ke TK atau SMP jika SD belum diisi.
+            $ref = $all['SD'] ?? $all['TK'] ?? $all['SMP'] ?? null;
+
+            $namaYayasan = $ref?->nama_yayasan ?: 'Yayasan Pendidikan Kristen';
+            $alamat      = collect([$ref?->alamat, $ref?->kota])->filter()->join(', ') ?: 'Lasem';
+            $telepon     = $ref?->telepon ?: '';
+            $kota        = $ref?->kota    ?: 'Lasem';
+
             return [
-                'mode'              => 'yayasan',
-                'nama_instansi'     => $namaYayasan,
-                'nama_yayasan'      => $namaYayasan,
-                'alamat'            => $alamat,
-                'telepon'           => $telepon,
-                'kota'              => $kota,
-                'logo_b64'          => $toBase64($global->logo),
-                // Nama TTD kiri: pakai nama_admin global jika ada, atau kosong
-                'ttd_kiri_nama'     => $global->nama_admin    ?: '',
-                'ttd_kiri_jabatan'  => 'Ketua Yayasan',
-                'ttd_kiri_b64'      => $toBase64($global->tanda_tangan ?? null),
-                // Kanan: bendahara (tidak ada datanya di setting global → kosong)
-                'ttd_kanan_nama'     => '',
-                'ttd_kanan_jabatan'  => 'Bendahara',
-                'ttd_kanan_b64'      => null,
-                // Sub-kop (baris kecil di bawah nama instansi)
+                'mode'             => 'yayasan',
+                'nama_instansi'    => $namaYayasan,
+                'nama_yayasan'     => $namaYayasan,
+                'alamat'           => $alamat,
+                'telepon'          => $telepon,
+                'kota'             => $kota,
+                'logo_b64'         => null, // logo per-sekolah, tidak ada logo yayasan
+                'ttd_kiri_jabatan' => 'Ketua Yayasan',
+                'ttd_kiri_nama'    => '',
+                'ttd_kiri_nip'     => '',
+                'ttd_kiri_b64'     => null,
+                'ttd_kanan_jabatan'=> 'Bendahara',
+                'ttd_kanan_nama'   => '',
+                'ttd_kanan_b64'    => null,
             ];
         }
 
         // ── Mode Per Jenjang ──────────────────────────────────────────────────
-        $sj = $all[$jenjang] ?? Setting::forJenjang($jenjang);
+        $s = $all[$jenjang] ?? Setting::forJenjang($jenjang);
 
-        $namaSekolah = $sj->nama_sekolah ?: ($jenjang . ' Kristen');
+        $namaYayasan = $s->nama_yayasan ?: 'Yayasan Pendidikan Kristen';
+        $namaSekolah = $s->nama_sekolah ?: ($jenjang . ' Kristen Dorkas');
+        $alamat      = collect([$s->alamat, $s->kota])->filter()->join(', ') ?: 'Lasem';
+        $telepon     = $s->telepon ?: '';
+        $kota        = $s->kota    ?: 'Lasem';
 
         return [
-            'mode'              => 'jenjang',
-            'nama_instansi'     => $namaSekolah,
-            'nama_yayasan'      => $namaYayasan,
-            'alamat'            => $alamat,
-            'telepon'           => $telepon,
-            'kota'              => $kota,
-            'logo_b64'          => $toBase64($sj->logo) ?? $toBase64($global->logo),
-            // TTD kiri: kepala sekolah
-            'ttd_kiri_nama'     => $sj->nama_kepala_sekolah ?: '',
-            'ttd_kiri_nip'      => $sj->nip_kepala_sekolah  ?: '',
-            'ttd_kiri_jabatan'  => 'Kepala Sekolah',
-            'ttd_kiri_b64'      => $toBase64($sj->tanda_tangan),
-            // TTD kanan: bendahara / TU (tidak ada di setting → kosong)
-            'ttd_kanan_nama'     => $sj->nama_admin ?: '',
-            'ttd_kanan_jabatan'  => 'Tata Usaha',
-            'ttd_kanan_b64'      => null,
-            // Sub-kop
-            'sub_instansi'      => 'Di bawah naungan ' . $namaYayasan,
+            'mode'             => 'jenjang',
+            'nama_instansi'    => $namaSekolah,
+            'nama_yayasan'     => $namaYayasan,
+            'sub_instansi'     => 'Di bawah naungan ' . $namaYayasan,
+            'alamat'           => $alamat,
+            'telepon'          => $telepon,
+            'kota'             => $kota,
+            'logo_b64'         => $toBase64($s->logo),
+            'ttd_kiri_jabatan' => 'Kepala Sekolah',
+            'ttd_kiri_nama'    => $s->nama_kepala_sekolah ?: '',
+            'ttd_kiri_nip'     => $s->nip_kepala_sekolah  ?: '',
+            'ttd_kiri_b64'     => $toBase64($s->tanda_tangan),
+            'ttd_kanan_jabatan'=> 'Tata Usaha',
+            'ttd_kanan_nama'   => $s->nama_admin ?: '',
+            'ttd_kanan_b64'    => null,
         ];
     }
 }

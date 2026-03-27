@@ -8,8 +8,13 @@
 @endsection
 
 @section('content')
+@php
+    if (session('auto_redirect')) {
+        $pesanSukses = session()->pull('success');
+    }
+@endphp
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h4 class="fw-bold mb-1" style="color: var(--navy); font-family:'Sora',sans-serif;">
             Detail Pembayaran
@@ -26,9 +31,6 @@
         @endif
         <a href="{{ route('pembayaran.index') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Kembali
-        </a>
-        <a href="{{ route('pembayaran.create') }}" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-plus-circle me-1"></i>Buat Pembayaran Baru
         </a>
     </div>
 </div>
@@ -138,13 +140,6 @@
                     </td>
                 </tr>
 
-                <tr style="background:var(--bg);">
-                    <td class="ps-4 py-3 fw-600" style="color:var(--ink-muted);">Petugas</td>
-                    <td class="py-3 pe-4" style="color:var(--ink-soft);">
-                        {{ $pembayaran->user->nama_lengkap ?? $pembayaran->user->name ?? '—' }}
-                    </td>
-                </tr>
-
                 @if($pembayaran->setoran)
                 <tr>
                     <td class="ps-4 py-3 fw-600" style="color:var(--ink-muted);">Setoran</td>
@@ -186,3 +181,29 @@
 </div>
 
 @endsection
+
+@push('scripts')
+@if(session('auto_redirect'))
+<script>
+(function () {
+    let sisa = 5;
+    const el  = document.getElementById('countdown');
+    const url = '{{ route('pembayaran.create') }}';
+
+    const timer = setInterval(() => {
+        sisa--;
+        if (el) el.textContent = sisa;
+        if (sisa <= 0) {
+            clearInterval(timer);
+            window.location.href = url;
+        }
+    }, 1000);
+
+    document.getElementById('btnBatalRedirect')?.addEventListener('click', function () {
+        clearInterval(timer);
+        document.getElementById('alertSukses').remove();
+    });
+})();
+</script>
+@endif
+@endpush

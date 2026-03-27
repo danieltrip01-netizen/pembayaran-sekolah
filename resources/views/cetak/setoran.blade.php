@@ -9,11 +9,11 @@
         * {
             font-family: Arial, sans-serif;
             font-size: 11px;
-            margin-left: 8px;
-            margin-right: 12px;
+            margin: 7px;
             margin-top: 0;
-            margin-bottom: 0;
+            margin-right: 10px;
             padding: 0;
+            box-sizing: border-box;
         }
 
         body {
@@ -34,39 +34,46 @@
         }
 
         .header-logo-cell {
-            width: 65px;
+            width: 70px;
             vertical-align: middle;
+            padding-right: 12px;
         }
 
         .header-logo {
             width: 60px;
             height: 60px;
             object-fit: contain;
+            display: block;
         }
 
         .header-teks {
             vertical-align: middle;
-            padding-left: 10px;
+            line-height: 1.4;
+        }
+
+        .header-teks .kop-yayasan {
+            font-size: 14px;
+            color: #64748b;
+            margin: 0;
+            padding: 0;
         }
 
         .header-teks h1 {
-            font-size: 18px;
+            font-size: 19px;
+            font-weight: bold;
             color: #1B4B8A;
             text-transform: uppercase;
-            margin-bottom: 2px;
+            letter-spacing: .4px;
+            margin: 0;
+            padding: 0;
+            line-height: 1.3;
         }
 
-        .header-teks p {
+        .header-teks .kop-alamat {
             font-size: 12px;
             color: #555;
             margin: 0;
-        }
-
-        .header-teks .judul-doc {
-            font-size: 12px;
-            margin-top: 5px;
-            font-weight: bold;
-            text-transform: uppercase;
+            padding: 0;
         }
 
         .judul-doc {
@@ -156,23 +163,23 @@
 <body>
 
     @php
-        // ── Resolusi data dari setting (dengan fallback aman) ────────────
-        $gs = $globalSetting ?? null; // Setting global
-        $js = $jenjangSetting ?? null; // Setting jenjang
+        // ── Semua data dari setting jenjang (masing-masing sekolah mandiri) ──
+        $js = $jenjangSetting ?? null;
 
-        $namaYayasan = $gs?->nama_yayasan ?: 'Yayasan Pendidikan';
-        $alamatYayasan =
-            collect([$gs?->alamat, $gs?->kota])
+        $namaYayasan = $js?->nama_yayasan ?: 'Yayasan';
+        $namaSekolah = $js?->nama_sekolah ?: $setoran->jenjang . 'Sekolah';
+        $alamat =
+            collect([$js?->alamat, $js?->kota])
                 ->filter()
                 ->join(', ') ?:
             'Jl. ini No. 00, kota';
-        $telepon = $gs?->telepon ?: '';
-        $namaSekolah = $js?->nama_sekolah ?: $setoran->jenjang . ' Kristen Dorkas';
+        $telepon = $js?->telepon ?: '';
+        $kota = $js?->kota ?: 'Lasem';
         $namaKepsek = $js?->nama_kepala_sekolah ?: '( ........................ )';
         $nipKepsek = $js?->nip_kepala_sekolah ?: '';
         $namaAdmin = $js?->nama_admin ?: $setoran->user->nama_lengkap ?? $setoran->user->name;
 
-        // Logo jenjang (base64 jika ada, untuk PDF)
+        // Logo jenjang (base64 untuk PDF)
         $logoData = '';
         if ($js?->logo && \Illuminate\Support\Facades\Storage::disk('public')->exists($js->logo)) {
             $mime = \Illuminate\Support\Facades\Storage::disk('public')->mimeType($js->logo);
@@ -192,10 +199,9 @@
                     </td>
                 @endif
                 <td class="header-teks">
-                    <h1>{{ $namaYayasan }}</h1>
-                    <p>{{ $namaSekolah }}</p>
-                    <p>{{ $alamatYayasan }}{{ $telepon ? ' · Telp. ' . $telepon : '' }}</p>
-
+                    <div class="kop-yayasan">{{ $namaYayasan }}</div>
+                    <h1>{{ $namaSekolah }}</h1>
+                    <div class="kop-alamat">{{ $alamat }}{{ $telepon ? ' · Telp. ' . $telepon : '' }}</div>
                 </td>
             </tr>
         </table>
@@ -208,14 +214,8 @@
         <tr>
             <td class="label">Kode Setoran</td>
             <td class="value">: {{ $setoran->kode_setoran }}</td>
-            <td class="label">Jenjang</td>
-            <td class="value">: {{ $setoran->jenjang }}</td>
-        </tr>
-        <tr>
             <td class="label">Tanggal</td>
             <td class="value">: {{ $setoran->tanggal_setoran->isoFormat('D MMMM Y') }}</td>
-            <td class="label">Petugas</td>
-            <td class="value">: {{ $setoran->user->nama_lengkap ?? $setoran->user->name }}</td>
         </tr>
     </table>
 
@@ -225,8 +225,7 @@
             ->groupBy(fn($item) => $item->siswaKelas?->kelas?->nama ?? 'Tanpa Kelas')
             ->sortKeys();
 
-        $hasMamin     = $setoran->total_mamin > 0;
-        $colspanTotal = $hasMamin ? 3 : 3; // No + Kelas + Jml Siswa
+        $hasMamin = $setoran->total_mamin > 0;
     @endphp
 
     <table class="data-table">
@@ -234,7 +233,7 @@
             <tr>
                 <th>Kelas</th>
                 <th style="width:80px">Jml. Siswa</th>
-                @if($hasMamin)
+                @if ($hasMamin)
                     <th>Total Nominal SPP</th>
                     <th>Total Mamin</th>
                 @endif
@@ -244,14 +243,14 @@
         <tbody>
             @foreach ($rekapPerKelas as $kelas => $items)
                 @php
-                    $subMamin   = $items->sum('nominal_mamin');
+                    $subMamin = $items->sum('nominal_mamin');
                     $subNominal = $items->sum(fn($p) => (float) $p->total_bayar);
-                    $subTotal   = $items->sum(fn($p) => (float) $p->total_bayar - (float) $p->nominal_mamin);
+                    $subTotal = $items->sum(fn($p) => (float) $p->total_bayar - (float) $p->nominal_mamin);
                 @endphp
                 <tr>
                     <td class="text-center"><strong>{{ $kelas }}</strong></td>
                     <td class="text-center">{{ $items->count() }} siswa</td>
-                    @if($hasMamin)
+                    @if ($hasMamin)
                         <td class="text-right">{{ number_format($subNominal, 0, ',', '.') }}</td>
                         <td class="text-right">{{ $subMamin > 0 ? number_format($subMamin, 0, ',', '.') : '-' }}</td>
                     @endif
@@ -264,18 +263,19 @@
                 <td colspan="{{ $hasMamin ? 2 : 2 }}" class="text-center">
                     GRAND TOTAL ({{ $setoran->pembayaran->count() }} siswa)
                 </td>
-                @if($hasMamin)
+                @if ($hasMamin)
                     <td class="text-right">
                         {{ number_format($setoran->total_keseluruhan, 0, ',', '.') }}
                     </td>
                     <td class="text-right">{{ number_format($setoran->total_mamin, 0, ',', '.') }}</td>
                 @endif
-                <td class="text-right"><strong>Rp
-                    {{ number_format($setoran->total_nominal, 0, ',', '.') }}</strong>
+                <td class="text-right">
+                    <strong>Rp {{ number_format($setoran->total_nominal, 0, ',', '.') }}</strong>
                 </td>
             </tr>
         </tfoot>
     </table>
+
     <p style="font-size:9px;color:#777">
         * Rekapitulasi berdasarkan {{ $rekapPerKelas->count() }} kelas dari
         {{ $setoran->pembayaran->count() }} transaksi pembayaran.
@@ -284,30 +284,18 @@
     {{-- ── Tanda Tangan ─────────────────────────────────────────────── --}}
     <table class="footer-ttd">
         <tr>
+            
+            <td style="width:10% aling-right"></td>
             <td class="ttd-box">
-                <p>Mengetahui,</p>
-                <p>Kepala Sekolah {{ $setoran->jenjang }}</p>
-                <div class="spacer"></div>
-                <p><strong>({{ $namaKepsek }})</strong></p>
-            </td>
-            <td style="width:10%"></td>
-            <td class="ttd-box">
-                <p>{{ collect([$gs?->kota])->filter()->first() ?:'Lasem' }},
-                    {{ $setoran->tanggal_setoran->isoFormat('D MMMM Y') }}</p>
-                <p>Tata Usaha {{ $setoran->jenjang }}</p>
-                <div class="spacer"></div>
-                <p><strong>({{ $namaAdmin }})</strong></p>
-            </td>
-        </tr>
-
-
-    </table>
-            <div class="ttd-box" style="margin-top: 20px; width: 100%; text-align: center;">
-                <p>Menyetujui</p>
+                <p>{{ $kota }}, {{ $setoran->tanggal_setoran->isoFormat('D MMMM Y') }}</p>
                 <p>Bendahara Yayasan</p>
                 <div class="spacer"></div>
-                <p><strong>(___________________)</strong></p>
-            </div>
+                <p><strong>___________________</strong></p>
+            </td>
+        </tr>
+    </table>
+
+    
 
 </body>
 

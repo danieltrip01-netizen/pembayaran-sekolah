@@ -12,6 +12,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\KreditController;
 use App\Http\Controllers\TahunAjaranController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RiwayatPublikController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -21,18 +22,29 @@ Route::get('/', fn() => redirect()->route('dashboard'));
 // Auth routes (dari Breeze)
 require __DIR__ . '/auth.php';
 
-// ── Public route: Riwayat Pembayaran via QR Code (dilindungi access_token) ──
-Route::get('/siswa/{siswa}/riwayat-pembayaran', [SiswaController::class, 'riwayatPembayaran'])
-     ->name('siswa.riwayat');
 
+Route::get('/riwayat/{siswa}/riwayat-pembayaran', [RiwayatPublikController::class, 'show'])
+    ->name('siswa.riwayat.publik')
+    ->middleware('signed'); // <-- validasi signed URL otomatis oleh Laravel
+ 
 // Protected routes
 Route::middleware(['auth'])->group(function () {
+    
+    // ── Profil ──────────────────────────────────────────────────────────────
+    Route::get('/profile',          [ProfileController::class, 'edit'])           ->name('profile.edit');
+    Route::patch('/profile',        [ProfileController::class, 'update'])         ->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword']) ->name('password.update');
+    Route::delete('/profile',       [ProfileController::class, 'destroy'])        ->name('profile.destroy');
+    
     Route::get('/siswa/generate-id', function (\Illuminate\Http\Request $request) {
         $jenjang = strtoupper($request->input('jenjang', 'SD'));
         return response()->json([
             'id_siswa' => \App\Models\Siswa::generateIdSiswa($jenjang),
         ]);
+        
     })->name('siswa.generate-id');
+
+
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -100,4 +112,5 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/kredit',                  [KreditController::class, 'index'])->name('kredit.index');
     Route::get('/kredit/{siswa}/tambah',   [KreditController::class, 'create'])->name('kredit.create');
     Route::post('/kredit/{siswa}',         [KreditController::class, 'store'])->name('kredit.store');
+    Route::delete('/kredit/{log}',         [KreditController::class, 'destroy'])->name('kredit.destroy');
 });

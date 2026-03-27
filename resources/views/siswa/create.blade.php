@@ -184,7 +184,7 @@
                                         <span class="input-group-text">Rp</span>
                                         <input type="number" name="nominal_spp" id="inSPP"
                                             value="{{ old('nominal_spp', 0) }}"
-                                            class="form-control @error('nominal_spp') is-invalid @enderror" min="0"
+                                            class="form-control @error('nominal_spp') is-invalid @enderror" required min="0"
                                             step="1000">
                                     </div>
                                     @error('nominal_spp')
@@ -238,6 +238,8 @@
                                                 <strong id="prevDonatur" class="ms-1" style="color:var(--red);">Rp
                                                     0</strong>
                                             </div>
+                                            @if (old('jenjang', $jenjang) === 'TK')
+                                                
                                             <div id="prevMaminWrap"
                                                 style="{{ old('jenjang', $jenjang) === 'TK' ? '' : 'display:none' }}"
                                                 class="d-flex align-items-center gap-2">
@@ -246,6 +248,8 @@
                                                 <strong id="prevMamin" class="ms-1" style="color:#0369a1;">Rp
                                                     0</strong>
                                             </div>
+                                             @endif
+
                                             <div>
                                                 <span style="color:var(--ink-muted);">=</span>
                                                 <span style="color:var(--ink-muted);">Total Tagihan/bln:</span>

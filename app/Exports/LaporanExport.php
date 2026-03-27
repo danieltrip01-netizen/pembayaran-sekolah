@@ -27,40 +27,76 @@ class LaporanExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
     // FIX: Gunakan FromQuery (lebih efisien untuk data besar) dan perbaiki semua filter
     public function query()
     {
-        return Pembayaran::with(['siswa', 'user', 'pembayaranBulan', 'siswaKelas.kelas'])
+        $tahunId = $this->filter['tahun_pelajaran_id'] ?? null;
 
-            // FIX: filter tahun pelajaran (wajib, defaultnya sudah di-handle controller)
-            ->when(!empty($this->filter['tahun_pelajaran_id']), fn($q) =>
-                $q->where('tahun_pelajaran_id', $this->filter['tahun_pelajaran_id'])
+        return Pembayaran::with([
+            'siswa',
+            'user',
+            'pembayaranBulan',
+            'siswa.siswaKelas' => fn($sq) => $sq
+                ->with('kelas')
+                ->when(
+                    $tahunId,
+                    fn($sq2) =>
+                    $sq2->where('tahun_pelajaran_id', $tahunId)
+                ),
+        ])
+
+            ->when(
+                !empty($tahunId),
+                fn($q) =>
+                $q->where('tahun_pelajaran_id', $tahunId)
             )
 
-            // Filter jenjang
-            ->when(!empty($this->filter['jenjang']), fn($q) =>
-                $q->whereHas('siswa', fn($sq) =>
+            ->when(
+                !empty($this->filter['jenjang']),
+                fn($q) =>
+                $q->whereHas(
+                    'siswa',
+                    fn($sq) =>
                     $sq->where('jenjang', $this->filter['jenjang'])
                 )
             )
 
-            // FIX: filter kelas lewat siswa_kelas → kelas, bukan kolom kelas di tabel siswa
-            ->when(!empty($this->filter['kelas']), fn($q) =>
-                $q->whereHas('siswaKelas.kelas', fn($kq) =>
-                    $kq->where('nama', $this->filter['kelas'])
+            ->when(
+                !empty($this->filter['kelas']),
+                fn($q) =>
+                $q->whereHas(
+                    'siswa.siswaKelas',
+                    fn($sq) =>
+                    $sq->whereHas(
+                        'kelas',
+                        fn($kq) =>
+                        $kq->where('nama', $this->filter['kelas'])
+                    )
+                        ->when(
+                            !empty($tahunId),
+                            fn($sq2) =>
+                            $sq2->where('tahun_pelajaran_id', $tahunId)
+                        )
                 )
             )
 
-            // FIX: filter bulan menggunakan relasi pembayaran_bulan,
-            //      bukan whereJsonContains('bulan_bayar') yang sudah usang
-            ->when(!empty($this->filter['bulan']), fn($q) =>
-                $q->whereHas('pembayaranBulan', fn($bq) =>
-                    $bq->where('bulan', $this->filter['bulan'])
-                )
+            // FIX: konsisten dengan buildQuery() di controller
+            ->when(
+                !empty($this->filter['bulan'])
+                    && empty($this->filter['tanggal_dari'])
+                    && empty($this->filter['tanggal_sampai']),
+                function ($q) {
+                    [$tahunBulan, $blnBulan] = explode('-', $this->filter['bulan']);
+                    return $q->whereYear('tanggal_bayar', $tahunBulan)
+                        ->whereMonth('tanggal_bayar', $blnBulan);
+                }
             )
 
-            // Filter tanggal (opsional, dari LaporanController)
-            ->when(!empty($this->filter['tanggal_dari']), fn($q) =>
+            ->when(
+                !empty($this->filter['tanggal_dari']),
+                fn($q) =>
                 $q->where('tanggal_bayar', '>=', $this->filter['tanggal_dari'])
             )
-            ->when(!empty($this->filter['tanggal_sampai']), fn($q) =>
+            ->when(
+                !empty($this->filter['tanggal_sampai']),
+                fn($q) =>
                 $q->where('tanggal_bayar', '<=', $this->filter['tanggal_sampai'])
             )
 
@@ -93,33 +129,43 @@ class LaporanExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
     {
         $this->rowNumber++;
 
+        $tahunId = $this->filter['tahun_pelajaran_id'] ?? null;
+
+        // Ambil kelas sesuai tahun pelajaran yang dipilih
+        $namaKelas = $row->siswa
+            ?->siswaKelas
+            ->firstWhere('tahun_pelajaran_id', $tahunId)
+            ?->kelas
+            ?->nama ?? '-';
+
         return [
             $this->rowNumber,
             $row->kode_bayar,
             $row->tanggal_bayar->format('d/m/Y'),
             $row->siswa->id_siswa ?? '-',
             $row->siswa->nama     ?? '-',
-
-            // FIX: kelas dari siswaKelas snapshot (bukan $row->siswa->kelas yang sudah dihapus)
-            $row->siswaKelas?->kelas?->nama ?? '-',
-
+            $namaKelas,                             // ← pakai yang sudah difilter
             $row->siswa->jenjang  ?? '-',
-
-            // FIX: bulan_label sudah menggunakan relasi pembayaranBulan (sudah di-eager-load)
             $row->bulan_label,
-
             $row->jumlah_bulan,
-            number_format($row->nominal_per_bulan,              0, ',', '.'),
-            number_format($row->nominal_donator,                0, ',', '.'),
-            number_format($row->nominal_mamin,                  0, ',', '.'),
-            number_format($row->kredit_digunakan ?? 0,          0, ',', '.'),
-            number_format($row->total_bayar,                    0, ',', '.'),
+            (int) $row->nominal_per_bulan,
+            (int) $row->nominal_donator,
+            (int) $row->nominal_mamin,
+            (int) ($row->kredit_digunakan ?? 0),
+            (int) $row->total_bayar,
             $row->user->name ?? '-',
         ];
     }
 
     public function styles(Worksheet $sheet): array
     {
+        // Format kolom J, K, L, M, N sebagai angka ribuan
+        foreach (['J', 'K', 'L', 'M', 'N'] as $col) {
+            $sheet->getStyle($col . '2:' . $col . $sheet->getHighestRow())
+                ->getNumberFormat()
+                ->setFormatCode('#,##0');
+        }
+
         return [
             1 => [
                 'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],

@@ -31,7 +31,7 @@
 
         /* ── KARTU ── */
         .kartu {
-            width: 98mm;
+            width: 95mm;
             height: 153mm;
             border: 1.5px solid #000;
             padding: 8px;
@@ -188,7 +188,6 @@
 @php
     /*
      * ── Urutkan kartu berdasarkan kelas ──────────────────────────────────────
-     * Flatten semua chunk, sort natural (1A < 1B < 2A < TK A), chunk ulang.
      */
     $allItems = collect($chunks)->collapse();
 
@@ -224,6 +223,7 @@
                 $namaYayasan = $namaYayasanMap[$jenjang] ?? '';
                 $namaSekolah = $namaSekolahMap[$jenjang] ?? $jenjang;
                 $alamat      = $alamatMap[$jenjang]      ?? '';
+                $kotaKartu   = $kotaMap[$jenjang]        ?? '';
 
                 // QR sudah di-generate di controller sebagai data URI
                 $qrSrc = $item['qr_src'] ?? '';
@@ -338,11 +338,10 @@
 
                         <div class="qr-cell">
                             <img src="{{ $qrSrc }}" class="qr-img" alt="QR">
-                            <div class="qr-label">Scan untuk<br>riwayat pembayaran</div>
                         </div>
 
                         <div class="ttd-cell">
-                            <div>{{ $kota }}, {{ \Carbon\Carbon::now()->translatedFormat('F Y') }}</div>
+                            <div>{{ $kotaKartu }}, {{ \Carbon\Carbon::now()->translatedFormat('F Y') }}</div>
                             <div>Kepala Sekolah,</div>
                             <div class="ttd-wrapper">
                                 @if($ttdData)

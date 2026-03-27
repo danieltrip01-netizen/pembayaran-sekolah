@@ -29,6 +29,21 @@
         border-color: var(--blue-light);
         color: var(--blue-dark);
     }
+    /* Pastikan state :focus dan :active tidak meniru tampilan .selected */
+    .bulan-btn.belum:focus,
+    .bulan-btn.belum:active {
+        background: var(--surface) !important;
+        border-color: var(--border) !important;
+        color: var(--ink-soft) !important;
+        box-shadow: none !important;
+        outline: none;
+    }
+    .bulan-btn.belum:focus:hover,
+    .bulan-btn.belum:active:hover {
+        background: var(--blue-pale) !important;
+        border-color: var(--blue-light) !important;
+        color: var(--blue-dark) !important;
+    }
     .bulan-btn.selected {
         background: var(--navy);
         border: 1.5px solid var(--navy);
@@ -98,11 +113,25 @@
 </div>
 @endif
 
+@if(session('lanjut_success'))
+<div class="alert alert-success alert-dismissible fade show mb-3 d-flex align-items-center gap-2"
+     style="font-size:.875rem;">
+    <i class="bi bi-check-circle-fill text-success flex-shrink-0"></i>
+    <div class="flex-grow-1">{!! session('lanjut_success') !!}</div>
+    <a href="{{ route('pembayaran.index') }}" class="btn btn-sm btn-outline-success flex-shrink-0">
+        <i class="bi bi-list-ul me-1"></i>Lihat Semua
+    </a>
+    <button type="button" class="btn-close ms-1" data-bs-dismiss="alert"></button>
+</div>
+@endif
+
 <form method="POST" action="{{ route('pembayaran.store') }}" id="formPembayaran">
 @csrf
 
 {{-- Hidden inputs bulan terpilih (diisi oleh JS) --}}
 <div id="hiddenBulanInputs"></div>
+{{-- Mode simpan: 'show' (default) atau 'continue' (simpan & lanjut) --}}
+<input type="hidden" name="after_save" id="afterSaveMode" value="show">
 
 <div class="row g-3">
 
@@ -131,27 +160,49 @@
                 <div class="mb-3">
                     <label class="form-label">
                         Siswa <span class="text-danger">*</span>
-                        @if($tahunPelajaran)
-                            <span class="ms-1" style="font-size:.75rem;font-weight:400;color:var(--ink-muted);">
-                                — terdaftar di T.A.
-                                <strong style="color:var(--blue-dark);">{{ $tahunPelajaran->nama }}</strong>
-                            </span>
-                        @endif
                     </label>
-                    <select name="siswa_id" id="siswaSelect"
-                            class="form-select @error('siswa_id') is-invalid @enderror"
-                            required {{ !$tahunPelajaran ? 'disabled' : '' }}>
-                        <option value="">— Pilih Siswa —</option>
-                        @foreach($daftarSiswa as $s)
-                        
-                        <option value="{{ $s->id }}"
-                            {{ (old('siswa_id', $siswa?->id) == $s->id) ? 'selected' : '' }}>
-                            {{ $s->nama }}
-                        </option>
-                        @endforeach
-                    </select>
+                    {{-- Autocomplete siswa — tekan "/" untuk fokus --}}
+                    <div class="position-relative" id="siswaSearchWrapper">
+                        <div class="input-group @error('siswa_id') is-invalid @enderror">
+                            <span class="input-group-text" style="background:var(--bg);">
+                                <i class="bi bi-search" id="iconSearch" style="color:var(--ink-muted);"></i>
+                            </span>
+                            <input type="text" id="siswaSearchInput"
+                                   class="form-control @error('siswa_id') is-invalid @enderror"
+                                   placeholder="Ketik nama siswa… (tekan / untuk fokus)"
+                                   autocomplete="off" spellcheck="false"
+                                   {{ !$tahunPelajaran ? 'disabled' : '' }}>
+                            <button type="button" id="btnClearSiswa"
+                                    class="btn btn-outline-secondary d-none"
+                                    tabindex="-1" title="Hapus pilihan">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                        {{-- Nilai aktual yang dikirim ke server --}}
+                        <input type="hidden" name="siswa_id" id="siswaSelect"
+                               value="{{ old('siswa_id', $siswa?->id) }}">
+                        {{-- Dropdown hasil pencarian --}}
+                        <div id="siswaDropdown"
+                             class="position-absolute w-100 d-none"
+                             style="top:calc(100% + 4px);z-index:1050;
+                                    background:#fff;border:1px solid var(--border);
+                                    border-radius:var(--r-md,.6rem);
+                                    box-shadow:0 8px 24px rgba(0,0,0,.12);
+                                    max-height:240px;overflow-y:auto;">
+                        </div>
+                    </div>
+                    {{-- Chip nama siswa terpilih --}}
+                    <div id="selectedSiswaChip" class="mt-2 d-none">
+                        <span style="display:inline-flex;align-items:center;gap:.4rem;
+                                     background:var(--blue-pale);border:1px solid var(--blue-light);
+                                     border-radius:999px;padding:.2rem .75rem;font-size:.82rem;
+                                     color:var(--blue-dark);font-weight:600;">
+                            <i class="bi bi-person-check-fill"></i>
+                            <span id="selectedSiswaName"></span>
+                        </span>
+                    </div>
                     @error('siswa_id')
-                        <div class="invalid-feedback">{{ $message }}</div>
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror
                     @if($tahunPelajaran && $daftarSiswa->isEmpty())
                     <div class="form-text" style="color:var(--yellow);">
@@ -166,7 +217,7 @@
                      style="background:var(--bg);border:1px solid var(--border);">
                     <div class="row g-2" style="font-size:.85rem;">
                         <div class="col-6">
-                            <div style="color:var(--ink-muted);">Jenjang / Kelas</div>
+                            <div style="color:var(--ink-muted);">Kelas</div>
                             <strong id="infoJenjang" style="color:var(--ink);">—</strong>
                         </div>
                         <div class="col-6">
@@ -202,7 +253,7 @@
                     <label class="form-label">Tanggal Bayar <span class="text-danger">*</span></label>
                     <input type="date" name="tanggal_bayar"
                            class="form-control @error('tanggal_bayar') is-invalid @enderror"
-                           value="{{ old('tanggal_bayar', date('Y-m-d')) }}" required>
+                           value="{{ old('tanggal_bayar', request('tanggal_bayar', date('Y-m-d'))) }}" required>
                     @error('tanggal_bayar')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -314,19 +365,14 @@
                             <span id="subSPP">Rp 0</span>
                         </td>
                     </tr>
+                    {{-- Donatur: hidden input untuk submit + teks untuk tampilan --}}
                     <tr>
                         <td class="pb-2" style="color:var(--ink-muted);">
                             Donatur <small style="color:var(--ink-faint);">(pengurang)</small>
                         </td>
                         <td class="text-end pb-2">
-                            <div class="input-group input-group-sm justify-content-end">
-                                <span class="input-group-text">Rp</span>
-                                <input type="number" name="nominal_donator" id="inputDonator"
-                                       class="form-control text-end" value="0" min="0"
-                                       style="max-width:110px;">
-                            </div>
-                            <div class="text-end mt-1" style="font-size:.8rem;color:var(--red);"
-                                 id="subDonatur">−Rp 0</div>
+                            <input type="hidden" name="nominal_donator" id="inputDonator" value="0">
+                            <span id="subDonatur" style="color:var(--red);">−Rp 0</span>
                         </td>
                     </tr>
                     <tr id="rowSumMamin" class="d-none">
@@ -356,7 +402,11 @@
                      style="background:#f0fdf4;border:1px solid #bbf7d0;
                             font-size:.72rem;color:#166534;">
                     <i class="bi bi-info-circle me-1"></i>
-                    Rumus: (SPP − Donatur + Mamin) × jumlah bulan − Kredit
+                    @if(($siswa->jenjang ?? $jenjang) === 'TK')
+                        Rumus: (SPP − Donatur + Mamin) × jumlah bulan − Kredit
+                    @else
+                        Rumus: (SPP − Donatur) × jumlah bulan − Kredit
+                    @endif
                 </div>
 
                 <div class="mt-3">
@@ -365,9 +415,10 @@
                               placeholder="Catatan pembayaran...">{{ old('keterangan') }}</textarea>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100 mt-3"
-                        id="btnSubmit" disabled>
-                    <i class="bi bi-save me-2"></i>Simpan Pembayaran
+                <button type="submit" class="btn btn-success w-100 mt-3"
+                        id="btnSubmitLanjut" disabled
+                        onclick="document.getElementById('afterSaveMode').value='continue'">
+                    <i class="bi bi-arrow-right-circle me-1"></i>Simpan &amp; Lanjut
                 </button>
 
                 <div class="text-center mt-2" style="font-size:.82rem;color:var(--ink-muted);"
@@ -387,6 +438,152 @@
 
 @push('scripts')
 <script>
+// ─── Data siswa dari server (untuk autocomplete) ──────────────────────────────
+@php
+    $daftarSiswaJs = $daftarSiswa->map(fn($s) => [
+        'id'      => $s->id,
+        'nama'    => $s->nama,
+        'jenjang' => $s->jenjang,
+    ])->values();
+@endphp
+const DAFTAR_SISWA = @json($daftarSiswaJs);
+
+// ─── Autocomplete ─────────────────────────────────────────────────────────────
+(function () {
+    const searchInput = document.getElementById('siswaSearchInput');
+    const hiddenInput = document.getElementById('siswaSelect');
+    const dropdown    = document.getElementById('siswaDropdown');
+    const chip        = document.getElementById('selectedSiswaChip');
+    const chipName    = document.getElementById('selectedSiswaName');
+    const btnClear    = document.getElementById('btnClearSiswa');
+    const iconSearch  = document.getElementById('iconSearch');
+
+    let activeIdx = -1;
+    let filteredList = [];
+
+    // Jika ada nilai preselect (old/query string), tampilkan chip langsung
+    const preId = hiddenInput.value;
+    if (preId) {
+        const pre = DAFTAR_SISWA.find(s => String(s.id) === String(preId));
+        if (pre) applySelection(pre, false);
+    }
+
+    // Buka / fokus search dengan shortcut "/" saat tidak ada input aktif
+    document.addEventListener('keydown', function (e) {
+        if (e.key === '/' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
+            e.preventDefault();
+            searchInput.focus();
+            searchInput.select();
+        }
+        // Escape menutup dropdown
+        if (e.key === 'Escape') closeDropdown();
+    });
+
+    searchInput.addEventListener('keydown', function (e) {
+        const items = dropdown.querySelectorAll('.ac-item');
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeIdx = Math.min(activeIdx + 1, items.length - 1);
+            highlightItem(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeIdx = Math.max(activeIdx - 1, 0);
+            highlightItem(items);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (activeIdx >= 0 && items[activeIdx]) items[activeIdx].click();
+        } else if (e.key === 'Escape') {
+            closeDropdown();
+        }
+    });
+
+    searchInput.addEventListener('input', function () {
+        const q = this.value.trim().toLowerCase();
+        activeIdx = -1;
+
+        if (!q) { closeDropdown(); return; }
+
+        filteredList = DAFTAR_SISWA.filter(s => s.nama.toLowerCase().includes(q)).slice(0, 12);
+        renderDropdown(q);
+    });
+
+    searchInput.addEventListener('focus', function () {
+        if (this.value.trim()) renderDropdown(this.value.trim().toLowerCase());
+    });
+
+    btnClear.addEventListener('click', function () {
+        clearSelection();
+        searchInput.focus();
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!document.getElementById('siswaSearchWrapper').contains(e.target)) closeDropdown();
+    });
+
+    function renderDropdown(q) {
+        if (!filteredList.length) {
+            dropdown.innerHTML = `<div class="px-3 py-2" style="font-size:.85rem;color:var(--ink-muted);">
+                                    <i class="bi bi-inbox me-1"></i>Tidak ditemukan</div>`;
+        } else {
+            dropdown.innerHTML = filteredList.map((s, i) => {
+                const highlight = s.nama.replace(
+                    new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'),
+                    '<mark style="background:#fde68a;padding:0;border-radius:2px;">$1</mark>'
+                );
+                return `<div class="ac-item px-3 py-2 d-flex align-items-center gap-2"
+                             data-id="${s.id}" data-nama="${s.nama}"
+                             style="cursor:pointer;font-size:.875rem;transition:background .1s;"
+                             onmouseenter="this.style.background='var(--blue-pale)'"
+                             onmouseleave="this.style.background=''">
+                            <span>${highlight}</span>
+                         </div>`;
+            }).join('');
+        }
+        dropdown.classList.remove('d-none');
+
+        // Pasang click handler pada setiap item
+        dropdown.querySelectorAll('.ac-item').forEach(el => {
+            el.addEventListener('click', function () {
+                applySelection({ id: this.dataset.id, nama: this.dataset.nama });
+            });
+        });
+    }
+
+    function highlightItem(items) {
+        items.forEach((el, i) => {
+            el.style.background = i === activeIdx ? 'var(--blue-pale)' : '';
+        });
+        if (items[activeIdx]) items[activeIdx].scrollIntoView({ block: 'nearest' });
+    }
+
+    function applySelection(siswa, triggerChange = true) {
+        hiddenInput.value     = siswa.id;
+        searchInput.value     = '';
+        chipName.textContent  = siswa.nama;
+        chip.classList.remove('d-none');
+        btnClear.classList.remove('d-none');
+        iconSearch.className  = 'bi bi-person-check-fill';
+        iconSearch.style.color = 'var(--blue)';
+        closeDropdown();
+        if (triggerChange) hiddenInput.dispatchEvent(new Event('change'));
+    }
+
+    function clearSelection() {
+        hiddenInput.value = '';
+        searchInput.value = '';
+        chip.classList.add('d-none');
+        btnClear.classList.add('d-none');
+        iconSearch.className   = 'bi bi-search';
+        iconSearch.style.color = 'var(--ink-muted)';
+        hiddenInput.dispatchEvent(new Event('change'));
+    }
+
+    function closeDropdown() {
+        dropdown.classList.add('d-none');
+        activeIdx = -1;
+    }
+})();
+
 // ─── State ────────────────────────────────────────────────────────────────────
 let siswaData     = null;
 let bulanDibayar  = [];
@@ -398,7 +595,7 @@ let tahunAjaran   = {{ $tahunAjaran }};
 // Base URL untuk endpoint data siswa (dipakai JS di bawah)
 const SISWA_DATA_URL = (siswaId) => `{{ url('/siswa') }}/${siswaId}/data`;
 
-// ─── Pilih Siswa ──────────────────────────────────────────────────────────────
+// ─── Pilih Siswa (dipicu autocomplete via dispatchEvent) ──────────────────────
 document.getElementById('siswaSelect').addEventListener('change', async function () {
     const siswaId = this.value;
     if (!siswaId) { resetForm(); return; }
@@ -437,7 +634,7 @@ document.getElementById('siswaSelect').addEventListener('change', async function
         const mamin         = parseFloat(siswaData.nominal_mamin)      || 0;
         const tagihanPerBln = spp - donor + (isTK ? mamin : 0);
 
-        document.getElementById('infoJenjang').textContent    = `${siswaData.jenjang} - Kelas ${siswaData.kelas}`;
+        document.getElementById('infoJenjang').textContent    = `Kelas ${siswaData.kelas}`;
         document.getElementById('infoNominal').textContent    = 'Rp ' + fmt(spp);
         document.getElementById('infoDonator').textContent    = 'Rp ' + fmt(donor);
         document.getElementById('infoMamin').textContent      = 'Rp ' + fmt(mamin);
@@ -446,6 +643,7 @@ document.getElementById('siswaSelect').addEventListener('change', async function
         document.getElementById('rowInfoMamin').style.display = isTK ? '' : 'none';
         document.getElementById('rowSumMamin').classList.toggle('d-none', !isTK);
 
+        // Set nilai donatur ke hidden input (tidak perlu trigger updateRingkasan dari sini)
         document.getElementById('inputDonator').value = donor;
 
         updateGridBulan();
@@ -520,10 +718,12 @@ document.getElementById('gridBulan').addEventListener('click', function (e) {
 // ─── Pilih / Hapus Semua ─────────────────────────────────────────────────────
 document.getElementById('btnSelectAll').addEventListener('click', function () {
     bulanTerpilih = [];
-    document.querySelectorAll('.bulan-btn.belum').forEach(btn => {
+    // Pilih semua bulan yang bisa dipilih (belum + sudah selected), abaikan dibayar & tidak-aktif
+    document.querySelectorAll('.bulan-btn:not(.dibayar):not(.tidak-aktif)').forEach(btn => {
         if (!btn.disabled) {
-            btn.classList.replace('belum', 'selected');
-            bulanTerpilih.push(btn.dataset.periode);
+            btn.classList.remove('belum');
+            btn.classList.add('selected');
+            if (btn.dataset.periode) bulanTerpilih.push(btn.dataset.periode);
         }
     });
     updateHiddenInputs();
@@ -553,11 +753,10 @@ function updateHiddenInputs() {
 }
 
 // ─── Update Ringkasan ─────────────────────────────────────────────────────────
-document.getElementById('inputDonator').addEventListener('input', updateRingkasan);
-
+// Event listener input dihapus karena donatur kini bukan input field
 function updateRingkasan() {
     if (!siswaData) {
-        document.getElementById('btnSubmit').disabled = true;
+        document.getElementById('btnSubmitLanjut').disabled = true;
         return;
     }
 
@@ -587,15 +786,15 @@ function updateRingkasan() {
         rowKredit.classList.add('d-none');
     }
 
-    const btn    = document.getElementById('btnSubmit');
-    const helper = document.getElementById('infoHelper');
+    const btnLanjut = document.getElementById('btnSubmitLanjut');
+    const helper    = document.getElementById('infoHelper');
 
     if (jml === 0) {
-        btn.disabled       = true;
+        btnLanjut.disabled = true;
         helper.textContent = 'Pilih minimal 1 bulan untuk melanjutkan';
         helper.style.color = 'var(--yellow)';
     } else {
-        btn.disabled       = false;
+        btnLanjut.disabled = false;
         helper.textContent = `${jml} bulan dipilih — Bayar: Rp ${fmt(totalBayar)}`;
         helper.style.color = 'var(--green)';
         helper.style.fontWeight = '600';
@@ -613,9 +812,10 @@ function resetForm() {
 
     document.getElementById('msgBulan').classList.remove('d-none');
     document.getElementById('hiddenBulanInputs').innerHTML = '';
-    document.getElementById('btnSelectAll').disabled = true;
-    document.getElementById('btnClearAll').disabled  = true;
-    document.getElementById('inputDonator').value    = 0;
+    document.getElementById('btnSelectAll').disabled    = true;
+    document.getElementById('btnClearAll').disabled     = true;
+    document.getElementById('btnSubmitLanjut').disabled = true;
+    document.getElementById('inputDonator').value       = 0;
     document.getElementById('rowSumKredit').classList.add('d-none');
 
     updateRingkasan();
@@ -625,23 +825,25 @@ function fmt(n) {
     return new Intl.NumberFormat('id-ID').format(Math.round(parseFloat(n) || 0));
 }
 
-// Jika siswa sudah di-preselect dari query string, trigger change
 @if($siswa)
     document.addEventListener('DOMContentLoaded', () => {
-        const sel = document.getElementById('siswaSelect');
-        if (sel.value) sel.dispatchEvent(new Event('change'));
+        const hid = document.getElementById('siswaSelect');
+        if (hid.value) hid.dispatchEvent(new Event('change'));
+    });
+@endif
+
+@if(session('lanjut_success'))
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('siswaSearchInput')?.focus();
     });
 @endif
 
 // ─── Simpan dengan tombol Enter ───────────────────────────────────────────────
 document.getElementById('formPembayaran').addEventListener('keydown', function (e) {
-    // Abaikan Enter di dalam textarea agar tetap bisa membuat baris baru
     if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
         e.preventDefault();
-        const btnSubmit = document.getElementById('btnSubmit');
-        if (!btnSubmit.disabled) {
-            btnSubmit.click();
-        }
+        const btn = document.getElementById('btnSubmitLanjut');
+        if (!btn.disabled) btn.click();
     }
 });
 </script>

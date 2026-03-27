@@ -15,7 +15,6 @@
             {{ $setoran->kode_setoran }}
         </h4>
         <p class="mb-0 d-flex align-items-center gap-2 flex-wrap" style="font-size:.85rem;color:var(--ink-muted)">
-            <span class="badge-{{ $setoran->jenjang }}">{{ $setoran->jenjang }}</span>
             {{ $setoran->tanggal_setoran->isoFormat('dddd, D MMMM Y') }}
             @if($setoran->tahunPelajaran)
                 <span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;font-weight:600;
@@ -62,27 +61,7 @@
                         <td style="color:var(--ink-muted)">Tanggal</td>
                         <td style="color:var(--ink)">{{ $setoran->tanggal_setoran->isoFormat('D MMM Y') }}</td>
                     </tr>
-                    <tr>
-                        <td style="color:var(--ink-muted)">Jenjang</td>
-                        <td>
-                            <span class="badge-{{ $setoran->jenjang }}">{{ $setoran->jenjang }}</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--ink-muted)">Petugas</td>
-                        <td class="fw-600" style="color:var(--ink)">{{ $setoran->user->name ?? '—' }}</td>
-                    </tr>
-                    @if($setoran->tahunPelajaran)
-                    <tr>
-                        <td style="color:var(--ink-muted)">Tahun Ajaran</td>
-                        <td>
-                            <span style="font-size:.78rem;font-weight:600;padding:.15rem .5rem;border-radius:999px;
-                                         background:#d1fae5;color:#065F46;border:1px solid #6ee7b7">
-                                {{ $setoran->tahunPelajaran->nama }}
-                            </span>
-                        </td>
-                    </tr>
-                    @endif
+                    
                     @if($setoran->keterangan)
                     <tr>
                         <td style="color:var(--ink-muted)">Keterangan</td>
@@ -159,8 +138,8 @@
                             <th>Nama Siswa</th>
                             <th>Kelas</th>
                             <th>Bulan</th>
-                            <th class="text-end">SPP</th>
                             @if($setoran->jenjang === 'TK')
+                            <th class="text-end">SPP</th>
                             <th class="text-end">Mamin</th>
                             @endif
                             <th class="text-end">Total</th>
@@ -188,10 +167,10 @@
                                 {{ $p->bulan_label }}
                                 <div style="font-size:.72rem;color:var(--ink-faint)">{{ $p->jumlah_bulan }} bulan</div>
                             </td>
+                            @if($setoran->jenjang === 'TK')
                             <td class="text-end" style="color:var(--ink-soft)">
                                 Rp {{ number_format((float)$p->total_bayar - (float)$p->nominal_mamin, 0, ',', '.') }}
                             </td>
-                            @if($setoran->jenjang === 'TK')
                             <td class="text-end" style="color:#6366f1">
                                 @if($p->nominal_mamin > 0)
                                     Rp {{ number_format($p->nominal_mamin, 0, ',', '.') }}
@@ -214,24 +193,7 @@
                         @endforelse
                     </tbody>
 
-                    @if($setoran->pembayaran->isNotEmpty())
-                    <tfoot>
-                        <tr class="fw-600" style="background:var(--bg)">
-                            <td colspan="{{ $setoran->jenjang === 'TK' ? 6 : 6 }}"
-                                class="text-end py-2" style="font-size:.82rem;color:var(--ink-muted)">
-                                Total ({{ $setoran->pembayaran->count() }} transaksi):
-                            </td>
-                            @if($setoran->jenjang === 'TK')
-                            <td class="text-end" style="font-size:.85rem;color:#6366f1">
-                                Rp {{ number_format($setoran->pembayaran->sum('nominal_mamin'), 0, ',', '.') }}
-                            </td>
-                            @endif
-                            <td class="text-end" style="font-size:.85rem;color:var(--green)">
-                                Rp {{ number_format($setoran->total_keseluruhan, 0, ',', '.') }}
-                            </td>
-                        </tr>
-                    </tfoot>
-                    @endif
+                   
                 </table>
             </div>
         </div>

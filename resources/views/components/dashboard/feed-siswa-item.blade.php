@@ -3,13 +3,12 @@
     'siswa',
     'showJenjang' => false,
 ])
-
-<div class="feed-item">
-
+<div class="feed-item siswa-item-wrap"
+     data-nama="{{ $siswa->nama }}"
+     data-kelas="{{ $siswa->kelasAktif?->kelas?->nama ?? 'Tanpa Kelas' }}">
     <div class="feed-avatar">
         {{ strtoupper(substr($siswa->nama, 0, 1)) }}
     </div>
-
     <div class="flex-grow-1 overflow-hidden">
         <div class="feed-name text-truncate">{{ $siswa->nama }}</div>
         <div class="feed-meta">
@@ -19,9 +18,7 @@
             Kelas {{ $siswa->kelasAktif?->kelas?->nama ?? '—' }}
         </div>
     </div>
-
     <a href="{{ route('pembayaran.create', ['siswa_id' => $siswa->id]) }}" class="btn-bayar">
         Bayar
     </a>
-
 </div>

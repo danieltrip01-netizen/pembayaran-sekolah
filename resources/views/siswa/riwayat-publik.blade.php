@@ -1,29 +1,19 @@
 {{-- resources/views/siswa/riwayat-pembayaran.blade.php --}}
-{{--
-    Halaman publik — dibuka via scan QR dari kartu SPP, tanpa login.
-    Data dari SiswaController::riwayatPembayaran():
-      $siswa        Siswa model
-      $kelasNama    string
-      $tahunAjaran  int   (mis. 2024)
-      $tahunNama    string (mis. "2024/2025")
-      $namaSekolah  string
-      $namaYayasan  string
-      $kota         string
-      $logoUrl      string|null  (Storage::url)
-      $riwayat      array [{
-                        periode, nama_bulan, sudah_bayar,
-                        tanggal, kode_bayar,
-                        spp, donatur, mamin, kredit, yang_dibayar
-                    }]
-      $totalLunas   int
-      $totalTagihan int
---}}
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Riwayat Pembayaran – {{ $siswa->nama }}</title>
+    {{-- Paksa WA pakai gambar kosong sebagai preview --}}
+    <meta property="og:title"       content="Riwayat Pembayaran SPP">
+    <meta property="og:description" content="{{ $namaSekolah }}">
+    <meta property="og:image"       content="{{ asset('img/blank.png') }}">
+    <meta property="og:image:width"  content="1">
+    <meta property="og:image:height" content="1">
+    <meta property="og:type"   
+    
+    <title></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
@@ -88,11 +78,7 @@
         }
 
         .hero-logo {
-            width: 42px; height: 42px; border-radius: 10px;
-            object-fit: contain;
-            background: rgba(255,255,255,.12); padding: 4px;
-            flex-shrink: 0;
-        }
+            width: 42px; height: 42px;  }
 
         .hero-logo-ph {
             width: 42px; height: 42px; border-radius: 10px;
@@ -287,12 +273,32 @@
             padding: 3px 0;
         }
 
-        .d-lbl { color: var(--ink-muted); }
+        .d-lbl { color: var(--ink-muted); display: flex; align-items: center; gap: 5px; }
 
         .d-val {
             font-family: 'DM Mono', monospace;
             font-weight: 500; color: var(--ink-soft);
         }
+
+        .d-minus      { color: var(--red) !important; }
+        .d-plus       { color: #0369a1 !important; }
+        .d-minus-amber{ color: var(--amber) !important; }
+
+        .d-badge {
+            font-size: 9px; font-weight: 700; letter-spacing: .03em;
+            padding: 1px 6px; border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .d-badge-red   { background: var(--red-light);   color: var(--red); }
+        .d-badge-blue  { background: var(--blue-light);  color: var(--blue); }
+        .d-badge-amber { background: var(--amber-light); color: var(--amber); }
+
+        .d-row.d-subtotal {
+            border-top: 1px dashed var(--border);
+            margin-top: 4px; padding-top: 6px;
+        }
+        .d-row.d-subtotal .d-lbl { color: var(--ink-soft); font-weight: 600; }
+        .d-row.d-subtotal .d-val { color: var(--ink-soft); font-weight: 600; }
 
         .d-row.d-total {
             border-top: 1px dashed var(--border);
@@ -355,7 +361,7 @@
     <div class="hero-header">
         @if($logoUrl)
             <img src="{{ $logoUrl }}" class="hero-logo" alt="{{ $namaSekolah }}">
-        @else
+            @else
             <div class="hero-logo-ph">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="1.5">
                     <path d="M12 14l9-5-9-5-9 5 9 5z"/>
@@ -365,10 +371,10 @@
         @endif
 
         <div>
-            <div class="school-name">{{ $namaSekolah }}</div>
             @if($namaYayasan)
                 <div class="school-sub">{{ $namaYayasan }}</div>
             @endif
+            <div class="school-name">{{ $namaSekolah }}</div>
         </div>
 
         <div class="ta-badge">T.A. {{ $tahunNama }}</div>
@@ -388,10 +394,7 @@
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                 Kelas {{ $kelasNama }}
             </div>
-            <div class="chip">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-                {{ $siswa->jenjang }}
-            </div>
+            
         </div>
     </div>
 </div>
@@ -404,11 +407,11 @@
             <div class="stat-lbl">Bulan<br>Lunas</div>
         </div>
         <div class="stat">
-            <div class="stat-num" style="color:var(--red);">{{ $totalTagihan - $totalLunas }}</div>
+            <div class="stat-num" style="color:var(--red);">{{ 12 - $totalLunas }}</div>
             <div class="stat-lbl">Belum<br>Dibayar</div>
         </div>
         <div class="stat">
-            <div class="stat-num" style="color:var(--navy);">{{ $totalTagihan }}</div>
+            <div class="stat-num" style="color:var(--navy);">12</div>
             <div class="stat-lbl">Total<br>Bulan</div>
         </div>
     </div>
@@ -416,7 +419,7 @@
 
 {{-- ── PROGRESS BAR ────────────────────────────────────────────────────── --}}
 <div class="progress-wrap">
-    @php $pct = $totalTagihan > 0 ? round($totalLunas / $totalTagihan * 100) : 0; @endphp
+    @php $pct = round($totalLunas / 12 * 100); @endphp
     <div class="progress-bar-bg">
         <div class="progress-bar-fill" style="width: {{ $pct }}%"></div>
     </div>
@@ -439,15 +442,11 @@
 
     <div class="bulan-list">
         @foreach($riwayat as $i => $bln)
-        @php
-            // Ambil 2 digit nomor bulan dari periode ('2024-07' → '07')
-            $noStr = substr($bln['periode'], -2);
-        @endphp
         <div class="bulan-card {{ $bln['sudah_bayar'] ? 'lunas' : 'belum' }}"
              id="bc-{{ $i }}" onclick="toggle({{ $i }})">
 
             <div class="bulan-header">
-                <div class="bulan-no">{{ $noStr }}</div>
+                <div class="bulan-no">{{ $bln['no_str'] }}</div>
 
                 <div class="bulan-info">
                     <div class="bulan-nama">{{ $bln['nama_bulan'] }}</div>
@@ -473,45 +472,78 @@
             </div>
 
             <div class="bulan-detail">
+                @php
+                    $isTK     = strtoupper($siswa->jenjang) === 'TK';
+                    $spp      = $bln['spp'];
+                    $donatur  = $bln['donatur'];
+                    $mamin    = $isTK ? $bln['mamin'] : 0;
+                    $kredit   = $bln['kredit'];
+                    $tagihan  = max(0, $spp - $donatur + $mamin);
+                    $totalByr = max(0, $tagihan - $kredit);
+                @endphp
+
+                {{-- SPP / bulan --}}
                 <div class="d-row">
-                    <span class="d-lbl">SPP</span>
-                    <span class="d-val">Rp {{ number_format($bln['spp'], 0, ',', '.') }}</span>
+                    <span class="d-lbl">SPP / bulan</span>
+                    <span class="d-val">Rp {{ number_format($spp, 0, ',', '.') }}</span>
                 </div>
 
-                @if($bln['donatur'] > 0)
+                {{-- Donatur — selalu tampil --}}
                 <div class="d-row">
-                    <span class="d-lbl">Donatur (pengurang)</span>
-                    <span class="d-val" style="color:var(--red);">
-                        &minus; Rp {{ number_format($bln['donatur'], 0, ',', '.') }}
+                    <span class="d-lbl">
+                        Donatur
+                        
                     </span>
+                    <span class="d-val d-minus">
+                        &minus; Rp {{ number_format($donatur, 0, ',', '.') }}
+                    </span>
+                </div>
+
+                {{-- Mamin — selalu tampil untuk TK --}}
+                @if($isTK)
+                <div class="d-row">
+                    <span class="d-lbl">
+                        Mamin
+                    </span>
+                    <span class="d-val d-plus">+ Rp {{ number_format($mamin, 0, ',', '.') }}</span>
                 </div>
                 @endif
 
-                @if($bln['mamin'] > 0)
+                {{-- Tagihan / bulan: SPP − Donatur + Mamin --}}
+                <div class="d-row d-subtotal">
+                    <span class="d-lbl">Tagihan / bulan</span>
+                    <span class="d-val">Rp {{ number_format($tagihan, 0, ',', '.') }}</span>
+                </div>
+
+                {{-- Kredit — hanya jika dipakai --}}
+                @if($kredit > 0)
                 <div class="d-row">
-                    <span class="d-lbl">Mamin</span>
-                    <span class="d-val" style="color:#0369a1;">
-                        + Rp {{ number_format($bln['mamin'], 0, ',', '.') }}
+                    <span class="d-lbl">
+                        Kredit Digunakan
+                        
                     </span>
+                    <span class="d-val d-minus-amber">&minus; Rp {{ number_format($kredit, 0, ',', '.') }}</span>
                 </div>
                 @endif
 
-                @if($bln['kredit'] > 0)
-                <div class="d-row">
-                    <span class="d-lbl">Kredit dipakai</span>
-                    <span class="d-val" style="color:var(--amber);">
-                        &minus; Rp {{ number_format($bln['kredit'], 0, ',', '.') }}
-                    </span>
-                </div>
-                @endif
-
+                {{-- TOTAL --}}
                 <div class="d-row d-total">
-                    <span class="d-lbl">Yang Dibayar</span>
-                    <span class="d-val">Rp {{ number_format($bln['yang_dibayar'], 0, ',', '.') }}</span>
+                    @if($bln['sudah_bayar'])
+                        <span class="d-lbl">Dibayarkan</span>
+                        <span class="d-val" style="color:var(--green);">
+                            Rp {{ number_format($bln['yang_dibayar'], 0, ',', '.') }}
+                        </span>
+                    @else
+                        <span class="d-lbl">Estimasi Tagihan</span>
+                        <span class="d-val" style="color:var(--ink-muted);">
+                            Rp {{ number_format($totalByr, 0, ',', '.') }}
+                        </span>
+                    @endif
                 </div>
 
+                {{-- Kode bayar --}}
                 @if($bln['kode_bayar'])
-                    <div class="kode-chip">{{ $bln['kode_bayar'] }}</div>
+                    <div class="kode-chip">🔖 {{ $bln['kode_bayar'] }}</div>
                 @endif
             </div>
 

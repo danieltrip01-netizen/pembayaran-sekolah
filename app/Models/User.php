@@ -16,6 +16,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'status',
     ];
 
     protected $hidden = [
@@ -27,11 +28,14 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
         ];
     }
 
+    // ─────────────────────────────────────────
     // Relasi
+    // ─────────────────────────────────────────
+
     public function pembayaran()
     {
         return $this->hasMany(Pembayaran::class);
@@ -42,7 +46,10 @@ class User extends Authenticatable
         return $this->hasMany(Setoran::class);
     }
 
-    // Helper methods
+    // ─────────────────────────────────────────
+    // Helper: Role
+    // ─────────────────────────────────────────
+
     public function hasRole(string ...$roles): bool
     {
         return in_array($this->role, $roles, true);
@@ -72,6 +79,10 @@ class User extends Authenticatable
     {
         return $this->hasRole('admin_smp');
     }
+
+    // ─────────────────────────────────────────
+    // Accessor
+    // ─────────────────────────────────────────
 
     public function getJenjangAttribute(): ?string
     {

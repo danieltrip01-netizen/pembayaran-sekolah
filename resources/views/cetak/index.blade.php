@@ -68,7 +68,6 @@
                             </thead>
                             <tbody id="tableSiswa">
                                 @forelse($siswa as $s)
-                                @if ($tahunAktif && $s->kelasAktif?->tahun_pelajaran_id === $tahunAktif->id)
                                     <tr>
                                         <td>
                                             <input type="checkbox" name="siswa_ids[]" value="{{ $s->id }}"
@@ -76,9 +75,8 @@
                                         </td>
                                         <td class="fw-600" style="color:var(--ink)">{{ $s->nama }}</td>
                                         <td><span class="badge-{{ $s->jenjang }}">{{ $s->jenjang }}</span></td>
-                                        {{-- FIX: gunakan relasi, bukan kolom kelas yang sudah dihapus --}}
                                         <td style="color:var(--ink-soft);font-size:.875rem">
-                                            {{ $s->kelasAktif?->kelas?->nama ?? '—' }}
+                                            {{ $s->siswaKelas->first()?->kelas?->nama ?? '—' }}
                                         </td>
                                         <td>
                                             @if ($s->status === 'aktif')
@@ -102,7 +100,6 @@
                                             @endif
                                         </td>
                                     </tr>
-                                @endif
                                 @empty
                                     <tr>
                                         <td colspan="5" class="text-center py-4 text-muted">

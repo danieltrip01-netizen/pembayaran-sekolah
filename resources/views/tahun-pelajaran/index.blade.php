@@ -1,9 +1,9 @@
 {{-- resources/views/tahun-pelajaran/index.blade.php --}}
 @extends('layouts.app')
-@section('title', 'Tahun Pelajaran')
+@section('title', 'Tahun Ajaran')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item active">Tahun Pelajaran</li>
+    <li class="breadcrumb-item active">Tahun Ajaran</li>
 @endsection
 
 @section('content')
@@ -12,7 +12,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="fw-bold mb-1" style="color:var(--navy);font-family:'Sora',sans-serif;">
-            Tahun Pelajaran
+            Tahun Ajaran
         </h4>
         <p class="mb-0" style="color:var(--ink-muted);font-size:.85rem;">
             Kelola periode tahun ajaran, status aktif, dan kunci data
@@ -20,7 +20,7 @@
     </div>
     <button type="button" class="btn btn-primary btn-sm px-3"
             data-bs-toggle="modal" data-bs-target="#modalTambah">
-        <i class="bi bi-plus-lg me-1"></i>Tambah Tahun Pelajaran
+        <i class="bi bi-plus-lg me-1"></i>Tambah Tahun Ajaran
     </button>
 </div>
 
@@ -50,7 +50,7 @@
     <i class="bi bi-calendar-check-fill fs-5 flex-shrink-0" style="color:var(--blue-dark);"></i>
     <div>
         <div class="fw-600" style="font-size:.88rem;color:var(--blue-dark);">
-            Tahun Pelajaran Aktif: {{ $aktif->nama }}
+            Tahun Ajaran Aktif: {{ $aktif->nama }}
         </div>
         <div style="font-size:.78rem;color:var(--ink-muted);">
             {{ $aktif->tanggal_mulai->isoFormat('D MMMM Y') }}
@@ -69,9 +69,9 @@
      style="background:#fff7ed;border:1px solid #fed7aa;">
     <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0" style="color:var(--orange);"></i>
     <div>
-        <div class="fw-600" style="font-size:.88rem;color:#92400E;">Tidak ada tahun pelajaran aktif</div>
+        <div class="fw-600" style="font-size:.88rem;color:#92400E;">Tidak ada tahun ajaran aktif</div>
         <div style="font-size:.78rem;color:var(--ink-muted);">
-            Pilih salah satu tahun pelajaran di bawah lalu klik "Aktifkan".
+            Pilih salah satu tahun ajaran di bawah lalu klik "Aktifkan".
         </div>
     </div>
 </div>
@@ -83,9 +83,9 @@
         @if($daftarTahun->isEmpty())
         <div class="text-center py-5">
             <i class="bi bi-calendar-x d-block mb-3" style="font-size:2.5rem;color:var(--ink-faint);"></i>
-            <h6 class="fw-bold" style="color:var(--ink-soft);">Belum ada tahun pelajaran</h6>
+            <h6 class="fw-bold" style="color:var(--ink-soft);">Belum ada tahun ajaran</h6>
             <p style="color:var(--ink-muted);font-size:.85rem;">
-                Klik tombol "Tambah Tahun Pelajaran" untuk memulai.
+                Klik tombol "Tambah Tahun Ajaran" untuk memulai.
             </p>
         </div>
         @else
@@ -94,18 +94,9 @@
                 <thead>
                     <tr>
                         <th class="ps-4" style="width:50px;">No</th>
-                        <th>Tahun Pelajaran</th>
+                        <th>Tahun Ajaran</th>
                         <th class="text-center">Periode</th>
-                        <th class="text-center">
-                            Siswa Terdaftar
-                            @if($jenjang)
-                                <span class="badge ms-1"
-                                      style="background:var(--blue-pale);color:var(--blue-dark);
-                                             border:1px solid var(--blue-light);font-size:.65rem;">
-                                    {{ $jenjang }}
-                                </span>
-                            @endif
-                        </th>
+                        <th class="text-center">Siswa Terdaftar</th>
                         <th class="text-center">Pembayaran</th>
                         <th class="text-center">Setoran</th>
                         <th class="text-center">Status</th>
@@ -277,7 +268,7 @@
             <div class="modal-header"
                  style="background:var(--navy);border:none;padding:1rem 1.25rem;">
                 <h6 class="modal-title fw-bold" id="lblTambah" style="color:#fff;">
-                    <i class="bi bi-plus-circle me-2"></i>Tambah Tahun Pelajaran
+                    <i class="bi bi-plus-circle me-2"></i>Tambah Tahun Ajaran
                 </h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -299,7 +290,7 @@
                     {{-- Nama --}}
                     <div class="mb-3">
                         <label class="form-label fw-600" style="font-size:.85rem;">
-                            Nama Tahun Pelajaran <span class="text-danger">*</span>
+                            Nama Tahun Ajaran <span class="text-danger">*</span>
                         </label>
                         <input type="text" name="nama"
                                value="{{ old('nama') }}"
@@ -337,7 +328,7 @@
                     <div class="mt-3 rounded-3 p-3"
                          style="background:var(--bg);border:1px solid var(--border);font-size:.8rem;color:var(--ink-muted);">
                         <i class="bi bi-info-circle me-1"></i>
-                        Tahun pelajaran baru otomatis berstatus <strong>non-aktif</strong>.
+                        Tahun ajaran baru otomatis berstatus <strong>non-aktif</strong>.
                         Aktifkan setelah ditambahkan.
                     </div>
 
@@ -363,7 +354,7 @@
             <div class="modal-header"
                  style="background:#B45309;border:none;padding:1rem 1.25rem;">
                 <h6 class="modal-title fw-bold" id="lblEdit" style="color:#fff;">
-                    <i class="bi bi-pencil-fill me-2"></i>Edit Tahun Pelajaran
+                    <i class="bi bi-pencil-fill me-2"></i>Edit Tahun Ajaran
                 </h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -385,7 +376,7 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-600" style="font-size:.85rem;">
-                            Nama Tahun Pelajaran <span class="text-danger">*</span>
+                            Nama Tahun Ajaran <span class="text-danger">*</span>
                         </label>
                         <input type="text" name="nama" id="editNama"
                                class="form-control @error('nama') is-invalid @enderror"

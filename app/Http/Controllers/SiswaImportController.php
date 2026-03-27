@@ -47,8 +47,17 @@ class SiswaImportController extends Controller
         $userJenjang = Auth::user()->jenjang;
         $mode        = $request->input('import_mode', 'new');
 
+        // Ambil tanggal_mulai tahun pelajaran aktif untuk dijadikan tanggal_masuk default
+        $tahunAktif     = TahunPelajaran::aktif();
+        $tanggalMasuk   = $tahunAktif?->tanggal_mulai;
+
+        if ($mode === 'new' && !$tahunAktif) {
+            return redirect()->route('siswa.import.index')
+                ->with('error', 'Tidak ada tahun pelajaran aktif. Aktifkan tahun pelajaran terlebih dahulu.');
+        }
+
         try {
-            $importer = new SiswaImport($userJenjang, $mode);
+            $importer = new SiswaImport($userJenjang, $mode, $tanggalMasuk);
             Excel::import($importer, $request->file('file'));
 
             $imported = $importer->getCountImported();

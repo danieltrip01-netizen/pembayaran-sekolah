@@ -1,55 +1,69 @@
-<section class="space-y-6">
-    <header>
-        <h2 class="text-lg font-medium text-gray-900">
-            {{ __('Delete Account') }}
-        </h2>
+{{-- resources/views/profile/partials/delete-user-form.blade.php --}}
+<p class="text-muted small mb-3">
+    Setelah akun dihapus, semua data terkait akan hilang secara permanen.
+    Pastikan Anda sudah mengunduh data yang diperlukan sebelum melanjutkan.
+</p>
 
-        <p class="mt-1 text-sm text-gray-600">
-            {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Before deleting your account, please download any data or information that you wish to retain.') }}
-        </p>
-    </header>
+<button type="button"
+        class="btn btn-danger btn-sm"
+        data-bs-toggle="modal"
+        data-bs-target="#modalHapusAkun">
+    <i class="bi bi-trash3 me-1"></i>Hapus Akun
+</button>
 
-    <x-danger-button
-        x-data=""
-        x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
-    >{{ __('Delete Account') }}</x-danger-button>
-
-    <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
-        <form method="post" action="{{ route('profile.destroy') }}" class="p-6">
-            @csrf
-            @method('delete')
-
-            <h2 class="text-lg font-medium text-gray-900">
-                {{ __('Are you sure you want to delete your account?') }}
-            </h2>
-
-            <p class="mt-1 text-sm text-gray-600">
-                {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.') }}
-            </p>
-
-            <div class="mt-6">
-                <x-input-label for="password" value="{{ __('Password') }}" class="sr-only" />
-
-                <x-text-input
-                    id="password"
-                    name="password"
-                    type="password"
-                    class="mt-1 block w-3/4"
-                    placeholder="{{ __('Password') }}"
-                />
-
-                <x-input-error :messages="$errors->userDeletion->get('password')" class="mt-2" />
+{{-- Modal Konfirmasi --}}
+<div class="modal fade" id="modalHapusAkun" tabindex="-1" aria-labelledby="modalHapusAkunLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title text-danger fw-bold" id="modalHapusAkunLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Hapus Akun?
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+            <div class="modal-body">
+                <p class="text-muted small">
+                    Setelah akun dihapus, semua data dan informasi terkait akan dihapus secara permanen.
+                    Masukkan password Anda untuk mengonfirmasi.
+                </p>
 
-            <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
-                    {{ __('Cancel') }}
-                </x-secondary-button>
+                <form method="post" action="{{ route('profile.destroy') }}" id="formHapusAkun">
+                    @csrf
+                    @method('delete')
 
-                <x-danger-button class="ms-3">
-                    {{ __('Delete Account') }}
-                </x-danger-button>
+                    <div class="mb-3">
+                        <label for="delete_password" class="form-label fw-semibold small">Password</label>
+                        <input type="password"
+                               id="delete_password"
+                               name="password"
+                               class="form-control @if($errors->userDeletion->get('password')) is-invalid @endif"
+                               placeholder="Masukkan password Anda"
+                               autofocus>
+                        @if ($errors->userDeletion->get('password'))
+                            <div class="invalid-feedback">
+                                {{ $errors->userDeletion->first('password') }}
+                            </div>
+                        @endif
+                    </div>
+                </form>
             </div>
-        </form>
-    </x-modal>
-</section>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                    Batal
+                </button>
+                <button type="submit" form="formHapusAkun" class="btn btn-danger btn-sm">
+                    <i class="bi bi-trash3 me-1"></i>Ya, Hapus Akun
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Buka modal otomatis jika ada error validasi hapus akun --}}
+@if ($errors->userDeletion->isNotEmpty())
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        new bootstrap.Modal(document.getElementById('modalHapusAkun')).show();
+    });
+</script>
+@endif

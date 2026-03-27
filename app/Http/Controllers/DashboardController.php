@@ -98,9 +98,15 @@ class DashboardController extends Controller
         $grafikData = $this->getGrafikPemasukan($jenjang, $tahunPelajaranId, $tahunPelajaran);
 
         // ── Siswa belum bayar bulan ini ───────────────────────────────────────
-        // FIX: tidak lagi pakai whereJsonContains('bulan_bayar') yang sudah dihapus.
-        // Sekarang cek via tabel pembayaran_bulan.
         $siswaBelumBayar = $this->getSiswaBelumBayar($bulanIni, $jenjang, $tahunPelajaranId);
+
+        // ── Siswa lunas semester 1 atau 2 ────────────────────────────────────
+        $siswaLunasSemester    = $this->getSiswaLunasSemester($jenjang, $tahunPelajaranId, $tahunPelajaran);
+        $jmlLunasSemester      = $siswaLunasSemester->count();
+
+        // ── Siswa belum lunas semester 1 & 2 ─────────────────────────────────
+        $siswaBelumLunasSmt1 = $this->getSiswaBelumLunasSmt($jenjang, $tahunPelajaranId, $tahunPelajaran, 1);
+        $siswaBelumLunasSmt2 = $this->getSiswaBelumLunasSmt($jenjang, $tahunPelajaranId, $tahunPelajaran, 2);
 
         // ── Pemasukan per jenjang (admin yayasan) ─────────────────────────────
         $pemasukanPerJenjang = [];
@@ -143,6 +149,10 @@ class DashboardController extends Controller
             'setoranBulanIni',
             'grafikData',
             'siswaBelumBayar',
+            'siswaLunasSemester',
+            'jmlLunasSemester',
+            'siswaBelumLunasSmt1',
+            'siswaBelumLunasSmt2',
             'belumDisetorCount',
             'belumDisetorNominal',
             'tahunPelajaran',
@@ -154,11 +164,6 @@ class DashboardController extends Controller
 
     /**
      * Data grafik pemasukan Juli – Juni sesuai tahun pelajaran aktif.
-     *
-     * Tahun pelajaran aktif diambil dari $tahunPelajaran->nama yang
-     * berformat "YYYY/YYYY" (contoh: "2024/2025").
-     * Jika tidak ada tahun pelajaran aktif, fallback ke tahun ajaran
-     * berjalan berdasarkan bulan saat ini (≥ Juli → tahun ini, < Juli → tahun lalu).
      */
     private function getGrafikPemasukan(?string $jenjang, ?int $tahunPelajaranId, $tahunPelajaran = null): array
     {
@@ -200,30 +205,125 @@ class DashboardController extends Controller
 
     /**
      * Daftar siswa aktif yang belum membayar untuk bulan tertentu.
-     *
-     * FIX: kolom bulan_bayar (JSON) sudah dihapus dari tabel pembayaran.
-     * Sekarang cek via tabel pembayaran_bulan — siswa belum bayar =
-     * siswa yang TIDAK punya record di pembayaran_bulan untuk bulan & tahun pelajaran ini.
-     *
-     * FIX: $s->kelas tidak lagi ada di model Siswa — kelas kini di tabel siswa_kelas.
-     * Eager-load kelasAktif.kelas agar blade bisa pakai $s->kelasAktif?->kelas?->nama.
      */
     private function getSiswaBelumBayar(string $bulan, ?string $jenjang, ?int $tahunPelajaranId)
     {
         if (!$tahunPelajaranId) {
-            return collect(); // tidak ada tahun aktif → tidak ada data
+            return collect();
         }
 
         return Siswa::aktif()
             ->with('kelasAktif.kelas')
             ->when($jenjang, fn($q) => $q->jenjang($jenjang))
-            ->whereHas('kelasAktif')  // hanya siswa terdaftar di tahun aktif
+            ->whereHas('kelasAktif')
             ->whereDoesntHave('pembayaranBulan', fn($q) =>
                 $q->where('bulan', $bulan)
                   ->whereHas('pembayaran', fn($p) =>
                       $p->where('tahun_pelajaran_id', $tahunPelajaranId)
                   )
             )
+            ->orderBy('jenjang')
+            ->orderBy('nama')
+            ->get();
+    }
+
+    /**
+     * Siswa yang sudah lunas di semester 1 (Jul–Des) ATAU semester 2 (Jan–Jun)
+     * pada tahun pelajaran aktif.
+     *
+     * Lunas semester = punya pembayaran_bulan di SEMUA bulan semester tersebut.
+     */
+    private function getSiswaLunasSemester(?string $jenjang, ?int $tahunPelajaranId, $tahunPelajaran = null)
+    {
+        if (!$tahunPelajaranId) {
+            return collect();
+        }
+
+        if ($tahunPelajaran && !empty($tahunPelajaran->nama)) {
+            $startYear = (int) substr($tahunPelajaran->nama, 0, 4);
+        } else {
+            $now       = Carbon::now();
+            $startYear = $now->month >= 7 ? $now->year : $now->year - 1;
+        }
+
+        // Semester 1: Jul–Des tahun awal
+        $bulanSmt1 = collect(range(7, 12))
+            ->map(fn($m) => Carbon::create($startYear, $m)->format('Y-m'))
+            ->all();
+
+        // Semester 2: Jan–Jun tahun berikutnya
+        $bulanSmt2 = collect(range(1, 6))
+            ->map(fn($m) => Carbon::create($startYear + 1, $m)->format('Y-m'))
+            ->all();
+
+        return Siswa::aktif()
+            ->with('kelasAktif.kelas')
+            ->when($jenjang, fn($q) => $q->jenjang($jenjang))
+            ->whereHas('kelasAktif')
+            // Lunas penuh = punya record di SEMUA 12 bulan (smt1 AND smt2)
+            ->where(function ($q) use ($bulanSmt1, $bulanSmt2, $tahunPelajaranId) {
+                // Lunas smt 1: semua 6 bulan Jul–Des terbayar
+                foreach ($bulanSmt1 as $bln) {
+                    $q->whereHas('pembayaranBulan', fn($pb) =>
+                        $pb->where('bulan', $bln)
+                           ->whereHas('pembayaran', fn($p) =>
+                               $p->where('tahun_pelajaran_id', $tahunPelajaranId)
+                           )
+                    );
+                }
+                // DAN lunas smt 2: semua 6 bulan Jan–Jun terbayar
+                foreach ($bulanSmt2 as $bln) {
+                    $q->whereHas('pembayaranBulan', fn($pb) =>
+                        $pb->where('bulan', $bln)
+                           ->whereHas('pembayaran', fn($p) =>
+                               $p->where('tahun_pelajaran_id', $tahunPelajaranId)
+                           )
+                    );
+                }
+            })
+            ->orderBy('jenjang')
+            ->orderBy('nama')
+            ->get();
+    }
+
+    /**
+     * Siswa yang BELUM lunas untuk semester tertentu (1 atau 2).
+     *
+     * Belum lunas = ada minimal 1 bulan dari semester tersebut yang belum terbayar.
+     * Semester 1: Jul–Des (startYear), Semester 2: Jan–Jun (startYear+1).
+     */
+    private function getSiswaBelumLunasSmt(?string $jenjang, ?int $tahunPelajaranId, $tahunPelajaran = null, int $semester = 1)
+    {
+        if (!$tahunPelajaranId) {
+            return collect();
+        }
+
+        if ($tahunPelajaran && !empty($tahunPelajaran->nama)) {
+            $startYear = (int) substr($tahunPelajaran->nama, 0, 4);
+        } else {
+            $now       = Carbon::now();
+            $startYear = $now->month >= 7 ? $now->year : $now->year - 1;
+        }
+
+        $bulanSmt = $semester === 1
+            ? collect(range(7, 12))->map(fn($m) => Carbon::create($startYear, $m)->format('Y-m'))->all()
+            : collect(range(1, 6))->map(fn($m) => Carbon::create($startYear + 1, $m)->format('Y-m'))->all();
+
+        return Siswa::aktif()
+            ->with('kelasAktif.kelas')
+            ->when($jenjang, fn($q) => $q->jenjang($jenjang))
+            ->whereHas('kelasAktif')
+            // Belum lunas = ada minimal 1 bulan dari semester ini yang belum terbayar
+            ->where(function ($q) use ($bulanSmt, $tahunPelajaranId) {
+                foreach ($bulanSmt as $bln) {
+                    $q->orWhereDoesntHave('pembayaranBulan', fn($pb) =>
+                        $pb->where('bulan', $bln)
+                           ->whereHas('pembayaran', fn($p) =>
+                               $p->where('tahun_pelajaran_id', $tahunPelajaranId)
+                           )
+                    );
+                }
+            })
             ->orderBy('jenjang')
             ->orderBy('nama')
             ->get();

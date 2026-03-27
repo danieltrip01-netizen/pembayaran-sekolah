@@ -50,7 +50,7 @@
 </div>
 @endif
 
-{{-- Filter --}}
+{{-- Filter
 <div class="card mb-3">
     <div class="card-body py-3">
         <form method="GET" class="row g-2 align-items-end">
@@ -96,13 +96,13 @@
 
         </form>
     </div>
-</div>
+</div> --}}
 
 {{-- Summary Cards --}}
 @php $jumlahSetoran = $setoran->total(); @endphp
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-        <div class="card text-center" style="border-color:var(--border)">
+        <div class="card text-center h-100" style="border-color:var(--border)">
             <div class="card-body py-3">
                 <div class="fw-bold mb-1" style="font-size:1.6rem;color:var(--navy);font-family:'Sora',sans-serif">
                     {{ $jumlahSetoran }}
@@ -113,8 +113,9 @@
             </div>
         </div>
     </div>
+    @if ($jenjang === 'TK')
     <div class="col-6 col-md-3">
-        <div class="card text-center" style="border-color:var(--border)">
+        <div class="card text-center h-100" style="border-color:var(--border)">
             <div class="card-body py-3">
                 <div class="fw-bold mb-1" style="font-size:.95rem;color:var(--green)">
                     Rp {{ number_format($totalNominalAll, 0, ',', '.') }}
@@ -126,7 +127,7 @@
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card text-center" style="border-color:var(--border)">
+        <div class="card text-center h-100" style="border-color:var(--border)">
             <div class="card-body py-3">
                 <div class="fw-bold mb-1" style="font-size:.95rem;color:#6366f1">
                     Rp {{ number_format($totalMaminAll, 0, ',', '.') }}
@@ -137,8 +138,9 @@
             </div>
         </div>
     </div>
+    @endif
     <div class="col-6 col-md-3">
-        <div class="card text-center" style="background:var(--navy);border-color:var(--navy)">
+        <div class="card text-center h-100" style="background:var(--navy);border-color:var(--navy)">
             <div class="card-body py-3">
                 <div class="fw-bold mb-1 text-white" style="font-size:.95rem">
                     Rp {{ number_format($grandTotalAll, 0, ',', '.') }}
@@ -161,12 +163,12 @@
                         <th style="width:45px">No</th>
                         <th>Kode Setoran</th>
                         <th>Tanggal</th>
-                        <th>Jenjang</th>
                         <th class="text-center">Jml Transaksi</th>
+                        @if ($jenjang === 'TK')
                         <th class="text-end">Total SPP</th>
                         <th class="text-end">Total Mamin</th>
+                        @endif
                         <th class="text-end">Grand Total</th>
-                        <th>Petugas</th>
                         <th style="width:130px">Aksi</th>
                     </tr>
                 </thead>
@@ -186,10 +188,6 @@
                             {{ $s->tanggal_setoran->isoFormat('D MMM Y') }}
                         </td>
 
-                        <td>
-                            <span class="badge-{{ $s->jenjang }}">{{ $s->jenjang }}</span>
-                        </td>
-
                         <td class="text-center">
                             <span style="display:inline-flex;align-items:center;gap:.3rem;
                                          font-size:.75rem;font-weight:600;padding:.25rem .65rem;
@@ -199,7 +197,8 @@
                                 {{ $s->pembayaran_count ?? $s->pembayaran->count() }}
                             </span>
                         </td>
-
+                        
+                         @if ($jenjang === 'TK')
                         <td class="text-end" style="font-size:.85rem;color:var(--ink-soft)">
                             Rp {{ number_format($s->total_nominal, 0, ',', '.') }}
                         </td>
@@ -211,18 +210,10 @@
                                 <span style="color:var(--ink-faint)">—</span>
                             @endif
                         </td>
+                        @endif
 
                         <td class="text-end fw-600" style="color:var(--green)">
                             Rp {{ number_format($s->total_keseluruhan, 0, ',', '.') }}
-                        </td>
-
-                        <td style="font-size:.85rem">
-                            <div class="fw-600" style="color:var(--ink)">{{ $s->user->name ?? '—' }}</div>
-                            @if($s->keterangan)
-                                <div style="font-size:.72rem;color:var(--ink-muted)">
-                                    {{ Str::limit($s->keterangan, 30) }}
-                                </div>
-                            @endif
                         </td>
 
                         <td>
@@ -271,15 +262,17 @@
                 @endphp
                 <tfoot>
                     <tr class="fw-600" style="background:var(--bg)">
-                        <td colspan="5" class="text-end" style="color:var(--ink-muted);font-size:.82rem">
-                            Total (halaman ini):
+                        <td colspan="4" class="text-end" style="color:var(--ink-muted);font-size:.82rem">
+                            Total:
                         </td>
+                         @if ($jenjang === 'TK')
                         <td class="text-end" style="font-size:.85rem">
                             Rp {{ number_format($pageNominal, 0, ',', '.') }}
                         </td>
                         <td class="text-end" style="font-size:.85rem;color:#6366f1">
                             Rp {{ number_format($pageMamin, 0, ',', '.') }}
                         </td>
+                        @endif
                         <td class="text-end" style="font-size:.85rem;color:var(--green)">
                             Rp {{ number_format($pageTotal, 0, ',', '.') }}
                         </td>

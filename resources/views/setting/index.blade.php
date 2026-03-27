@@ -1,9 +1,9 @@
 {{-- resources/views/setting/index.blade.php --}}
 @extends('layouts.app')
-@section('title', 'Pengaturan Sistem')
+@section('title', 'Data Sekolah')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item active">Pengaturan</li>
+    <li class="breadcrumb-item active">Data Sekolah</li>
 @endsection
 
 @push('styles')
@@ -66,29 +66,21 @@
 @section('content')
 
 @php
-    $activeTab = request('tab', $userJenjang ?? 'global');
+    $activeTab = request('tab', $userJenjang ?? 'TK');
 @endphp
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold mb-0" style="color:var(--primary)">Pengaturan Sistem</h4>
+        <h4 class="fw-bold mb-0" style="color:var(--primary)">Data Sekolah</h4>
         <p class="text-muted small mb-0">
             @if($userJenjang)
-                Identitas sekolah, kepala sekolah, dan tanda tangan jenjang {{ $userJenjang }}
+                Identitas, kepala sekolah, dan tanda tangan
             @else
-                Logo, identitas, kepala sekolah, dan tanda tangan untuk semua jenjang
+                Data lengkap masing-masing sekolah: TK, SD, dan SMP
             @endif
         </p>
     </div>
 </div>
-
-{{-- Alert sukses --}}
-{{-- @if(session('success'))
-<div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4">
-    <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-@endif --}}
 
 {{-- Alert error --}}
 @if($errors->any())
@@ -106,24 +98,22 @@
 ═══════════════════════════════════════════════════════════════════════ --}}
 @if($userJenjang)
     @include('setting._form_jenjang', [
-        'setting'    => $setting,
-        'global'     => $global,
-        'jenjang'    => $userJenjang,
+        'setting'        => $setting,
+        'jenjang'        => $userJenjang,
         'isAdminYayasan' => false,
     ])
 
 {{-- ══════════════════════════════════════════════════════════════════════
-     ADMIN YAYASAN: Tampilkan tab Global + TK + SD + SMP
+     ADMIN YAYASAN: Tab TK + SD + SMP (masing-masing data lengkap)
 ═══════════════════════════════════════════════════════════════════════ --}}
 @else
     {{-- Tab navigation --}}
     <ul class="nav nav-tabs nav-tabs-setting border-bottom mb-0" id="settingTabs">
         @php
             $tabConfig = [
-                'global' => ['label' => 'Yayasan',  'icon' => 'bi-building',    'color' => '#64748b', 'badge' => ''],
-                'TK'     => ['label' => 'TK',        'icon' => 'bi-stars',       'color' => '#db2777', 'badge' => 'background:#fce7f3;color:#db2777;border:1px solid #f9a8d4'],
-                'SD'     => ['label' => 'SD',        'icon' => 'bi-mortarboard', 'color' => '#1d4ed8', 'badge' => 'background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd'],
-                'SMP'    => ['label' => 'SMP',       'icon' => 'bi-award',       'color' => '#059669', 'badge' => 'background:#d1fae5;color:#059669;border:1px solid #6ee7b7'],
+                'TK'  => ['label' => 'TK',  'icon' => 'bi-stars',       'color' => '#db2777', 'badge' => 'background:#fce7f3;color:#db2777;border:1px solid #f9a8d4'],
+                'SD'  => ['label' => 'SD',  'icon' => 'bi-mortarboard', 'color' => '#1d4ed8', 'badge' => 'background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd'],
+                'SMP' => ['label' => 'SMP', 'icon' => 'bi-award',       'color' => '#059669', 'badge' => 'background:#d1fae5;color:#059669;border:1px solid #6ee7b7'],
             ];
         @endphp
         @foreach($tabConfig as $key => $cfg)
@@ -132,9 +122,7 @@
                href="{{ route('setting.index', ['tab' => $key]) }}">
                 <i class="bi {{ $cfg['icon'] }} me-1" style="color:{{ $cfg['color'] }}"></i>
                 {{ $cfg['label'] }}
-                @if($cfg['badge'])
-                    <span class="tab-jenjang-badge" style="{{ $cfg['badge'] }}">{{ $key }}</span>
-                @endif
+                <span class="tab-jenjang-badge" style="{{ $cfg['badge'] }}">{{ $key }}</span>
             </a>
         </li>
         @endforeach
@@ -142,21 +130,13 @@
 
     {{-- Tab content --}}
     <div class="tab-content border border-top-0 rounded-bottom bg-white p-4 shadow-sm">
-
-        {{-- ── Tab Yayasan (Global) ────────────────────────────────── --}}
-        @if($activeTab === 'global')
-            @include('setting._form_global', ['setting' => $settings['global']])
-
-        {{-- ── Tab Jenjang ─────────────────────────────────────────── --}}
-        @elseif(in_array($activeTab, ['TK', 'SD', 'SMP']))
+        @if(in_array($activeTab, ['TK', 'SD', 'SMP']))
             @include('setting._form_jenjang', [
                 'setting'        => $settings[$activeTab],
-                'global'         => $settings['global'],
                 'jenjang'        => $activeTab,
                 'isAdminYayasan' => true,
             ])
         @endif
-
     </div>
 @endif
 
@@ -191,7 +171,6 @@ function setupUpload(cfg) {
             dropZone.classList.add('has-file');
             if (label) label.textContent = 'File dipilih — klik untuk mengganti';
 
-            // Update live preview dokumen
             if (livePreviewId) {
                 const lp = document.getElementById(livePreviewId);
                 if (lp) {
@@ -242,7 +221,6 @@ function setupUpload(cfg) {
 
 document.addEventListener('DOMContentLoaded', function () {
 
-    // Inisialisasi semua upload zone yang ada di halaman
     ['logo', 'ttd'].forEach(key => {
         setupUpload({
             inputId:        key + 'Input',
@@ -266,7 +244,6 @@ document.addEventListener('DOMContentLoaded', function () {
         'nama_yayasan'        : ['previewNamaYayasan', '[ Nama Yayasan ]'],
         'nama_kepala_sekolah' : ['previewKepala',      '( Nama Kepala Sekolah )'],
         'nama_admin'          : ['previewAdmin',        '( Nama Admin )'],
-        'telepon'             : null,
     };
 
     Object.entries(liveMap).forEach(([name, cfg]) => {

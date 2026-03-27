@@ -7,6 +7,13 @@ use Carbon\Carbon;
 
 class AppServiceProvider extends ServiceProvider
 {
+    public function register(): void
+{
+    // Paksa public path ke lokasi public_html
+    $this->app->bind('path.public', function() {
+        return '/home/esck4946/public_html';
+    });
+}
     public function boot(): void
     {
         Carbon::setLocale('id');

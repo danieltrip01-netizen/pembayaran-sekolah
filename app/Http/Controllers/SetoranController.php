@@ -62,6 +62,7 @@ class SetoranController extends Controller
             'totalNominalAll',
             'totalMaminAll',
             'tahunPelajaran',
+            'jenjang'
         ));
     }
 
@@ -226,6 +227,6 @@ class SetoranController extends Controller
         $setoran->delete();
 
         return redirect()->route('setoran.index')
-            ->with('success', 'Setoran ' . $kode . ' berhasil dihapus. Pembayaran terkait dapat disetor ulang.');
+            ->with('success', 'Setoran ' . $kode . ' berhasil dihapus.');
     }
 }

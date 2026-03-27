@@ -107,10 +107,11 @@ class SiswaExport implements
             'nama',             // B — referensi, boleh diubah
             'jenjang',          // C — TK / SD / SMP
             'kelas',            // D — nama kelas (I, II, VII, KB, dll) editable
-            'nominal_spp',      // E — editable
-            'nominal_donator',  // F — editable
-            'nominal_mamin',    // G — editable (hanya TK)
-            'status',           // H — aktif / tidak_aktif
+            'no_hp_wali',       // E — No. HP wali, editable
+            'nominal_spp',      // F — editable
+            'nominal_donator',  // G — editable
+            'nominal_mamin',    // H — editable (hanya TK)
+            'status',           // I — aktif / tidak_aktif
         ];
     }
 
@@ -124,6 +125,7 @@ class SiswaExport implements
             $siswa->nama,
             $siswa->jenjang,
             $ka?->kelas?->nama ?? '',
+            $siswa->no_hp_wali ?? '',
             (int) ($ka?->nominal_spp     ?? 0),
             (int) ($ka?->nominal_donator ?? 0),
             (int) ($ka?->nominal_mamin   ?? 0),
@@ -136,7 +138,7 @@ class SiswaExport implements
         $lastRow = $this->rowCount + 1;
 
         // ── Heading ──────────────────────────────────────────────────
-        $sheet->getStyle('A1:H1')->applyFromArray([
+        $sheet->getStyle('A1:I1')->applyFromArray([
             'font' => [
                 'bold'  => true,
                 'color' => ['argb' => 'FFFFFFFF'],
@@ -152,25 +154,25 @@ class SiswaExport implements
             ],
         ]);
 
-        // ── Kolom read-only: A-C, H ───────────────────────────────────
+        // ── Kolom read-only: A-C, I ───────────────────────────────────
         $lockedStyle = [
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF1F5F9']],
             'font' => ['color' => ['argb' => 'FF64748B']],
         ];
         if ($lastRow > 1) {
             $sheet->getStyle("A2:C{$lastRow}")->applyFromArray($lockedStyle);
-            $sheet->getStyle("H2:H{$lastRow}")->applyFromArray($lockedStyle);
+            $sheet->getStyle("I2:I{$lastRow}")->applyFromArray($lockedStyle);
         }
 
-        // ── Kolom editable: D-G — kuning muda ────────────────────────
+        // ── Kolom editable: D-H — kuning muda ────────────────────────
         if ($lastRow > 1) {
-            $sheet->getStyle("D2:G{$lastRow}")->applyFromArray([
+            $sheet->getStyle("D2:H{$lastRow}")->applyFromArray([
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFFFDE7']],
             ]);
         }
 
         // ── Border ───────────────────────────────────────────────────
-        $sheet->getStyle("A1:H{$lastRow}")->applyFromArray([
+        $sheet->getStyle("A1:I{$lastRow}")->applyFromArray([
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => Border::BORDER_THIN,
@@ -181,13 +183,13 @@ class SiswaExport implements
 
         $sheet->freezePane('A2');
 
-        $sheet->getStyle('E1:G1')->getAlignment()
+        $sheet->getStyle('F1:H1')->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
         // ── Zebra stripe ──────────────────────────────────────────────
         for ($r = 2; $r <= $lastRow; $r++) {
             if ($r % 2 === 0) {
-                $sheet->getStyle("A{$r}:H{$r}")->applyFromArray([
+                $sheet->getStyle("A{$r}:I{$r}")->applyFromArray([
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF8FAFC']],
                 ]);
             }
@@ -199,10 +201,12 @@ class SiswaExport implements
         $sheet->getComment('D1')->getText()
             ->createTextRun('Isi dengan nama kelas baru untuk tahun ajaran ini.');
         $sheet->getComment('E1')->getText()
-            ->createTextRun('SPP per bulan (angka, tanpa Rp/titik/koma).');
+            ->createTextRun('No. HP wali siswa (contoh: 08123456789). Kosongkan jika tidak ada.');
         $sheet->getComment('F1')->getText()
-            ->createTextRun('Keringanan SPP. Isi 0 jika tidak ada.');
+            ->createTextRun('SPP per bulan (angka, tanpa Rp/titik/koma).');
         $sheet->getComment('G1')->getText()
+            ->createTextRun('Keringanan SPP. Isi 0 jika tidak ada.');
+        $sheet->getComment('H1')->getText()
             ->createTextRun('Makan & minum. Hanya relevan untuk TK, isi 0 untuk SD/SMP.');
 
         // ── Catatan kaki jika filter kelas akhir aktif ────────────────
@@ -218,21 +222,22 @@ class SiswaExport implements
             $sheet->getStyle("A{$noteRow}")->applyFromArray([
                 'font' => ['italic' => true, 'color' => ['argb' => 'FF94A3B8'], 'size' => 9],
             ]);
-            $sheet->mergeCells("A{$noteRow}:H{$noteRow}");
+            $sheet->mergeCells("A{$noteRow}:I{$noteRow}");
         }
     }
 
     public function columnWidths(): array
     {
         return [
-            'A' => 12,
-            'B' => 28,
-            'C' => 8,
-            'D' => 10,
-            'E' => 18,
-            'F' => 18,
-            'G' => 16,
-            'H' => 14,
+            'A' => 12,  // id_siswa
+            'B' => 28,  // nama
+            'C' => 8,   // jenjang
+            'D' => 10,  // kelas
+            'E' => 20,  // no_hp_wali
+            'F' => 18,  // nominal_spp
+            'G' => 18,  // nominal_donator
+            'H' => 16,  // nominal_mamin
+            'I' => 14,  // status
         ];
     }
 

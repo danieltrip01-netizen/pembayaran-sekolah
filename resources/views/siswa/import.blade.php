@@ -99,15 +99,6 @@
                 </div>
                 <div class="card-body">
 
-                    @if ($jenjang)
-                        <div class="rounded-3 mb-3 py-2 px-3"
-                             style="background:#eff6ff;border:1px solid var(--blue-light);
-                                    font-size:.85rem;color:var(--blue-dark);">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Login sebagai admin <strong>{{ $jenjang }}</strong>.
-                            Hanya data jenjang <strong>{{ $jenjang }}</strong> yang akan diproses.
-                        </div>
-                    @endif
 
                     {{-- ── Mode Import ── --}}
                     <div class="mb-4">
@@ -280,6 +271,7 @@
                                         ['nama',            $w,   'Nama lengkap siswa'],
                                         ['jenjang',         $w,   '<code>TK</code> / <code>SD</code> / <code>SMP</code>'],
                                         ['kelas',           $w,   'KB/OA/OB (TK) · I–VI (SD) · VII–IX (SMP)'],
+                                        ['no_hp_wali',      $opt, 'No. HP wali (contoh: 08123456789)'],
                                         ['nominal_spp',     $opt, 'SPP per bulan (angka, mis: 175000)'],
                                         ['nominal_donator', $opt, 'Keringanan SPP (0 jika tidak ada)'],
                                         ['nominal_mamin',   $opt, 'Makan &amp; minum — hanya untuk TK'],
@@ -301,7 +293,15 @@
                         </div>
                         <ul class="mb-0 ps-3" style="color:var(--ink-soft);font-size:.78rem;line-height:2;">
                             <li><strong>ID Siswa</strong> — berdasarkan jenjang</li>
-                            <li><strong>Tanggal Masuk</strong> — 1 Juli tahun ajaran berjalan</li>
+                            <li>
+                                <strong>Tanggal Masuk</strong> —
+                                @if($tahunPelajaran)
+                                    {{ $tahunPelajaran->tanggal_mulai->translatedFormat('d F Y') }}
+                                    <span style="color:var(--ink-faint);">(tanggal mulai T.A. aktif)</span>
+                                @else
+                                    <span class="text-danger">Tidak ada T.A. aktif</span>
+                                @endif
+                            </li>
                             <li><strong>Status</strong> — aktif</li>
                         </ul>
                     </div>
@@ -332,6 +332,7 @@
                                         ['nama',            $w,   'Nama siswa (boleh diperbarui)'],
                                         ['jenjang',         $w,   '<code>TK</code> / <code>SD</code> / <code>SMP</code>'],
                                         ['kelas',           $w,   'Kelas di tahun baru (boleh diubah)'],
+                                        ['no_hp_wali',      $opt, '✏️ No. HP wali (boleh diperbarui)'],
                                         ['nominal_spp',     $opt, '✏️ Edit sesuai tarif tahun baru'],
                                         ['nominal_donator', $opt, '✏️ Edit sesuai tarif tahun baru'],
                                         ['nominal_mamin',   $opt, '✏️ Hanya untuk TK'],

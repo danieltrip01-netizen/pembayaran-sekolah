@@ -110,7 +110,7 @@
                     <tr>
                         <th class="ps-4" style="width:50px">No</th>
                         <th>Siswa</th>
-                        <th class="text-center">Kelas (T.A. Aktif)</th>
+                        <th class="text-center">Kelas</th>
                         <th class="text-end">SPP/Bln</th>
                         <th class="text-end">Donatur</th>
                         <th class="text-end">Total Tagihan</th>
@@ -131,11 +131,9 @@
                         <td>
                             <a href="{{ route('siswa.show', $s) }}"
                                class="fw-600 text-decoration-none d-block mb-0"
-                               style="font-size: .9rem; color: var(--ink);">{{ $s->nama }}</a>
+                               style="font-size: .9rem; color: var(--blue);">{{ $s->nama }}</a>
                             <small style="color: var(--ink-muted); font-size: .75rem;">
                                 {{ $s->id_siswa }}
-                                <span class="mx-1">·</span>
-                                <span class="badge-{{ strtolower($s->jenjang) }}">{{ $s->jenjang }}</span>
                             </small>
                         </td>
                         <td class="text-center">
@@ -222,11 +220,6 @@
         @if($siswa->hasPages())
         <div class="d-flex justify-content-between align-items-center px-4 py-3 border-top"
              style="background: var(--bg);">
-            <div style="color: var(--ink-muted); font-size: .82rem;">
-                Menampilkan <strong>{{ $siswa->firstItem() }}</strong> –
-                <strong>{{ $siswa->lastItem() }}</strong> dari
-                <strong>{{ $siswa->total() }}</strong> siswa
-            </div>
             <div>
                 {{ $siswa->links('pagination::bootstrap-5') }}
             </div>

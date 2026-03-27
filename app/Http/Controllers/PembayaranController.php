@@ -18,19 +18,18 @@ use Illuminate\Validation\ValidationException;
 class PembayaranController extends Controller
 {
     use HasBulanLabel;
-    // ─── Index ───────────────────────────────────────────────────────────────
+// ─── Index ───────────────────────────────────────────────────────────────
 
     public function index(Request $request)
     {
         $jenjang        = Auth::user()->jenjang;
         $tahunPelajaran = TahunPelajaran::aktif();
 
-        $pembayaran = Pembayaran::with(['siswa', 'user', 'pembayaranBulan', 'siswaKelas.kelas'])
-            // ── Batasi hanya transaksi tahun pelajaran aktif ─────────────────
+        // ── Base query (dipakai dua kali: summary + paginate) ────────────────
+        $baseQuery = Pembayaran::query()
             ->when(
                 $tahunPelajaran,
                 fn($q) => $q->where('tahun_pelajaran_id', $tahunPelajaran->id),
-                // Jika tidak ada tahun aktif, jangan tampilkan data apapun
                 fn($q) => $q->whereRaw('0 = 1')
             )
             ->when($jenjang, fn($q) =>
@@ -49,19 +48,30 @@ class PembayaranController extends Controller
                           ->orWhere('kode_bayar', 'like', "%{$search}%")
                 );
             })
-            // Filter jenjang manual hanya berlaku untuk pengguna tanpa jenjang
             ->when($request->filled('jenjang') && !$jenjang,
                 fn($q) => $q->whereHas('siswa', fn($sq) => $sq->where('jenjang', $request->jenjang))
             )
             ->when($request->status_setor === 'belum', fn($q) => $q->whereNull('setoran_id'))
-            ->when($request->status_setor === 'sudah', fn($q) => $q->whereNotNull('setoran_id'))
+            ->when($request->status_setor === 'sudah', fn($q) => $q->whereNotNull('setoran_id'));
+
+        // ── Aggregate dari seluruh hasil filter (1 query) ────────────────────
+        $summary = (clone $baseQuery)->selectRaw('
+            COUNT(*)                                                 AS total_transaksi,
+            COALESCE(SUM(total_bayar), 0)                           AS total_rupiah,
+            SUM(CASE WHEN setoran_id IS NULL     THEN 1 ELSE 0 END) AS belum_disetor,
+            SUM(CASE WHEN setoran_id IS NOT NULL THEN 1 ELSE 0 END) AS sudah_disetor
+        ')->first();
+
+        // ── Paginate dengan eager-load ───────────────────────────────────────
+        $pembayaran = (clone $baseQuery)
+            ->with(['siswa', 'user', 'pembayaranBulan', 'siswaKelas.kelas'])
             ->orderByDesc('id')
             ->paginate(20)
             ->withQueryString();
 
-        return view('pembayaran.index', compact('pembayaran', 'tahunPelajaran'));
+        return view('pembayaran.index', compact('pembayaran', 'summary', 'tahunPelajaran'));
     }
-
+    
     // ─── Create ──────────────────────────────────────────────────────────────
 
     public function create(Request $request)
@@ -89,17 +99,18 @@ class PembayaranController extends Controller
 
         $tahunAjaran = $this->getTahunAjaran($tahunPelajaran);
 
-        return view('pembayaran.create', compact('daftarSiswa', 'siswa', 'tahunAjaran', 'tahunPelajaran'));
+        return view('pembayaran.create', compact('daftarSiswa', 'siswa', 'tahunAjaran', 'tahunPelajaran', 'jenjang'));
     }
 
     // ─── Store ───────────────────────────────────────────────────────────────
 
     public function store(StorePembayaranRequest $request): RedirectResponse
     {
-        $data = $request->validated();
+        $data      = $request->validated();
+        $afterSave = $request->input('after_save', 'show'); // 'show' | 'continue'
 
         try {
-            return DB::transaction(function () use ($data): RedirectResponse {
+            return DB::transaction(function () use ($data, $afterSave): RedirectResponse {
 
                 // 1. Lock siswa untuk mencegah race condition pada saldo kredit
                 $siswa = Siswa::lockForUpdate()->findOrFail($data['siswa_id']);
@@ -180,7 +191,7 @@ class PembayaranController extends Controller
                     $siswa->pakaiKredit(
                         jumlah       : $kreditDiskon,
                         pembayaranId : $pembayaran->id,
-                        keterangan   : "Kredit dipakai untuk {$pembayaran->kode_bayar}",
+                        keterangan   : "Kredit dipakai untuk:",
                     );
                 }
 
@@ -200,8 +211,23 @@ class PembayaranController extends Controller
                     );
                 }
 
+                // ── Redirect sesuai tombol yang ditekan ─────────────────────
+                if ($afterSave === 'continue') {
+                    // Simpan & Lanjut: kembali ke form baru, pertahankan tanggal
+                    $tanggal = $data['tanggal_bayar'];
+                    $flash   = "✓ <strong>{$pembayaran->kode_bayar}</strong> — {$siswa->nama} berhasil disimpan.";
+                    if ($kreditDiskon > 0) {
+                        $flash .= ' Kredit Rp ' . number_format($kreditDiskon, 0, ',', '.') . ' dipotong.';
+                    }
+
+                    return redirect()
+                        ->route('pembayaran.create', ['tanggal_bayar' => $tanggal])
+                        ->with('lanjut_success', $flash);
+                }
+
                 return redirect()->route('pembayaran.show', $pembayaran)
-                    ->with('success', $pesan);
+                    ->with('success', $pesan)
+                    ->with('auto_redirect', true);
             });
 
         } catch (\RuntimeException $e) {
@@ -218,7 +244,7 @@ class PembayaranController extends Controller
         return view('pembayaran.show', compact('pembayaran'));
     }
 
-    // ─── Edit ────────────────────────────────────────────────────────────────
+// ─── Edit ────────────────────────────────────────────────────────────────
 
     public function edit(Pembayaran $pembayaran)
     {
@@ -227,8 +253,41 @@ class PembayaranController extends Controller
                 ->with('error', 'Pembayaran yang sudah masuk setoran tidak dapat diedit.');
         }
 
-        $pembayaran->load('siswa');
-        return view('pembayaran.edit', compact('pembayaran'));
+        $pembayaran->load(['siswa.kelasAktif.kelas', 'pembayaranBulan']);
+
+        $siswa          = $pembayaran->siswa;
+        $tahunPelajaran = TahunPelajaran::aktif();
+        $tahunAjaran    = $this->getTahunAjaran($tahunPelajaran);
+
+        // Periode yang dimiliki pembayaran ini → pre-selected di grid
+        $bulanTerpilih = $pembayaran->pembayaranBulan->pluck('bulan')->toArray();
+
+        // Semua periode aktif untuk siswa ini (12 bulan tahun pelajaran)
+        $bulanAktif = $siswa->getBulanAktif($tahunAjaran);
+
+        // Semua periode yang sudah dibayar siswa ini KECUALI pembayaran ini
+        $bulanDibayarLain = PembayaranBulan::where('siswa_id', $siswa->id)
+            ->whereHas('pembayaran', fn($q) => $q->where('id', '!=', $pembayaran->id))
+            ->pluck('bulan')
+            ->toArray();
+
+        // Nominal per-bulan (snapshot lama, hanya untuk preview ringkasan)
+        $donaturPerBln = $pembayaran->jumlah_bulan > 0
+            ? (int) round($pembayaran->nominal_donator / $pembayaran->jumlah_bulan)
+            : 0;
+        $maminPerBln = $pembayaran->jumlah_bulan > 0
+            ? (int) round($pembayaran->nominal_mamin / $pembayaran->jumlah_bulan)
+            : 0;
+
+        return view('pembayaran.edit', compact(
+            'pembayaran',
+            'tahunAjaran',
+            'bulanTerpilih',
+            'bulanDibayarLain',
+            'bulanAktif',
+            'donaturPerBln',
+            'maminPerBln',
+        ));
     }
 
     // ─── Update ──────────────────────────────────────────────────────────────
@@ -240,31 +299,68 @@ class PembayaranController extends Controller
         }
 
         $validated = $request->validate([
-            'tanggal_bayar'   => ['required', 'date'],
-            'nominal_donator' => ['nullable', 'numeric', 'min:0'],
-            'keterangan'      => ['nullable', 'string', 'max:255'],
+            'tanggal_bayar' => ['required', 'date'],
+            'bulan_bayar'   => ['required', 'array', 'min:1'],
+            'bulan_bayar.*' => ['string', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+            'keterangan'    => ['nullable', 'string', 'max:255'],
         ]);
 
-        $jumlahBulan     = $pembayaran->jumlah_bulan;
-        $spp             = (float) $pembayaran->nominal_per_bulan;
-        $donaturPerBulan = isset($validated['nominal_donator'])
-            ? (float) $validated['nominal_donator']
-            : (float) ($pembayaran->nominal_donator / max($jumlahBulan, 1));
-        $maminPerBulan   = $jumlahBulan > 0
-            ? (float) $pembayaran->nominal_mamin / $jumlahBulan
-            : 0.0;
+        $bulanBaru = array_values(array_unique($validated['bulan_bayar']));
+        sort($bulanBaru);
 
-        // Rumus: (SPP − Donatur + Mamin) × jumlah_bulan − kredit
-        $tagiBruto  = ($spp - $donaturPerBulan + $maminPerBulan) * $jumlahBulan;
-        $kredit     = (float) ($pembayaran->kredit_digunakan ?? 0);
-        $totalBayar = max(0.0, $tagiBruto - $kredit);
+        // Cek bentrok: bulan yang sudah diklaim pembayaran lain siswa yang sama
+        $bentrok = PembayaranBulan::whereIn('bulan', $bulanBaru)
+            ->where('siswa_id', $pembayaran->siswa_id)
+            ->whereHas('pembayaran', fn($q) => $q->where('id', '!=', $pembayaran->id))
+            ->pluck('bulan')
+            ->toArray();
 
-        $pembayaran->update([
-            'tanggal_bayar'   => $validated['tanggal_bayar'],
-            'nominal_donator' => $donaturPerBulan * $jumlahBulan,
-            'total_bayar'     => $totalBayar,
-            'keterangan'      => $validated['keterangan'] ?? null,
-        ]);
+        if (!empty($bentrok)) {
+            $label = implode(', ', array_map([static::class, 'formatBulan'], $bentrok));
+            return back()
+                ->withInput()
+                ->withErrors(['bulan_bayar' => "Bulan berikut sudah dibayar di transaksi lain: {$label}"]);
+        }
+
+        DB::transaction(function () use ($pembayaran, $validated, $bulanBaru): void {
+            $jumlahBulan = count($bulanBaru);
+            $spp         = (float) $pembayaran->nominal_per_bulan;
+
+            // Donatur & mamin diambil dari snapshot pembayaran lama — tidak boleh diubah di sini
+            $donaturPerBulan = $pembayaran->jumlah_bulan > 0
+                ? (float) $pembayaran->nominal_donator / $pembayaran->jumlah_bulan
+                : 0.0;
+            $maminPerBulan = $pembayaran->jumlah_bulan > 0
+                ? (float) $pembayaran->nominal_mamin / $pembayaran->jumlah_bulan
+                : 0.0;
+
+            // Hitung ulang total berdasarkan jumlah bulan baru
+            $tagiBruto  = ($spp - $donaturPerBulan + $maminPerBulan) * $jumlahBulan;
+            $kredit     = (float) ($pembayaran->kredit_digunakan ?? 0);
+            $totalBayar = max(0.0, $tagiBruto - $kredit);
+
+            // Ganti detail bulan: hapus lama, insert baru
+            $pembayaran->pembayaranBulan()->delete();
+
+            PembayaranBulan::insert(
+                array_map(fn($b) => [
+                    'pembayaran_id' => $pembayaran->id,
+                    'siswa_id'      => $pembayaran->siswa_id,
+                    'bulan'         => $b,
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ], $bulanBaru)
+            );
+
+            $pembayaran->update([
+                'tanggal_bayar'  => $validated['tanggal_bayar'],
+                'jumlah_bulan'   => $jumlahBulan,
+                'nominal_donator'=> $donaturPerBulan * $jumlahBulan,
+                'nominal_mamin'  => $maminPerBulan   * $jumlahBulan,
+                'total_bayar'    => $totalBayar,
+                'keterangan'     => $validated['keterangan'] ?? null,
+            ]);
+        });
 
         return redirect()->route('pembayaran.show', $pembayaran)
             ->with('success', 'Data pembayaran berhasil diperbarui.');

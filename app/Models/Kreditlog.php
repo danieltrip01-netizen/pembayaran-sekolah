@@ -15,11 +15,12 @@ class KreditLog extends Model
         'siswa_id',
         'user_id',
         'pembayaran_id',
-        'tipe',          // enum: 'tambah' | 'pakai'  ← BUKAN 'masuk'/'keluar'
+        'tipe',
         'jumlah',
         'saldo_sebelum',
         'saldo_sesudah',
         'keterangan',
+        'dibatalkan_oleh_id',
     ];
 
     protected $casts = [
@@ -43,6 +44,11 @@ class KreditLog extends Model
     public function pembayaran()
     {
         return $this->belongsTo(Pembayaran::class);
+    }
+
+    public function dibatalkanOleh()
+    {
+        return $this->belongsTo(User::class, 'dibatalkan_oleh_id');
     }
 
     // ─── Scopes ──────────────────────────────────────────────────────

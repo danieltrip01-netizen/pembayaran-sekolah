@@ -23,10 +23,7 @@ $jStyle = match($siswa->jenjang) {
     <div>
         <h4 class="fw-bold mb-0" style="color:var(--primary)">Saldo Kredit Siswa</h4>
         <p class="text-muted small mb-0">
-            <span class="badge rounded-pill me-1"
-                  style="background:{{ $jStyle['bg'] }};color:{{ $jStyle['color'] }};border:1px solid {{ $jStyle['border'] }}">
-                {{ $siswa->jenjang }}
-            </span>
+            
             {{ $siswa->nama }} · {{ $siswa->kelasAktif?->kelas?->nama ?? '-' }}
         </p>
     </div>
@@ -82,18 +79,18 @@ $jStyle = match($siswa->jenjang) {
                 <table class="table mb-0" style="font-size:.85rem">
                     <thead>
                         <tr>
-                            <th>Waktu</th>
+                            <th>Tanggal</th>
                             <th>Tipe</th>
                             <th class="text-end">Jumlah</th>
                             <th class="text-end">Saldo Sesudah</th>
                             <th>Keterangan</th>
-                            <th>Oleh</th>
+                            <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($log as $l)
-                        <tr>
-                            <td class="text-muted">{{ $l->created_at->isoFormat('D MMM Y HH:mm') }}</td>
+                        <tr class="{{ $l->trashed() ? 'opacity-50' : '' }}">
+                            <td class="text-muted">{{ $l->created_at->isoFormat('D MMM Y') }}</td>
                             <td>
                                 @if($l->tipe === 'tambah')
                                 <span class="badge" style="background:#d1fae5;color:#059669;border:1px solid #6ee7b7">
@@ -113,7 +110,14 @@ $jStyle = match($siswa->jenjang) {
                                 Rp {{ number_format($l->saldo_sesudah,0,',','.') }}
                             </td>
                             <td>
-                                <span class="text-muted">{{ $l->keterangan }}</span>
+                                <span class="text-muted {{ $l->trashed() ? 'text-decoration-line-through' : '' }}">
+                                    {{ $l->keterangan }}
+                                </span>
+                                @if($l->trashed())
+                                <br><span class="badge" style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;font-size:.7rem">
+                                    <i class="bi bi-slash-circle me-1"></i>Dibatalkan
+                                </span>
+                                @endif
                                 @if($l->pembayaran)
                                 <br><a href="{{ route('pembayaran.show', $l->pembayaran) }}"
                                        class="small text-decoration-none" style="color:var(--primary)">
@@ -121,7 +125,21 @@ $jStyle = match($siswa->jenjang) {
                                 </a>
                                 @endif
                             </td>
-                            <td class="text-muted">{{ $l->user->name ?? '—' }}</td>
+                            <td class="text-center">
+                                @if($l->trashed())
+                                    {{-- sudah dibatalkan, tidak perlu tombol --}}
+                                    <span class="text-muted small">—</span>
+                                @elseif($l->tipe === 'tambah')
+                                    <button type="button"
+                                            class="btn btn-sm"
+                                            style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;white-space:nowrap"
+                                            onclick="konfirmasiBatal({{ $l->id }}, {{ $l->jumlah }}, '{{ addslashes($l->keterangan) }}')">
+                                        <i class="bi bi-x-circle me-1"></i>Batalkan
+                                    </button>
+                                @else
+                                    <span class="text-muted small">—</span>
+                                @endif
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -143,10 +161,63 @@ $jStyle = match($siswa->jenjang) {
 
 </div>
 
+{{-- ═══ Modal Konfirmasi Batalkan Kredit ═══ --}}
+<div class="modal fade" id="modalBatalkan" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-top:4px solid #dc2626">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold" style="color:#dc2626">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Batalkan Kredit
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="text-muted small mb-3">Anda akan membatalkan entri kredit berikut:</p>
+                <div class="rounded p-3 mb-3" style="background:#fef2f2;border:1px solid #fca5a5">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted small">Jumlah Kredit</span>
+                        <strong style="color:#dc2626" id="modalJumlah">—</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">Keterangan</span>
+                        <span class="small text-end" id="modalKeterangan" style="max-width:65%">—</span>
+                    </div>
+                </div>
+                <div class="alert alert-warning py-2 mb-0 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Saldo kredit siswa akan <strong>dikurangi</strong> sejumlah di atas.
+                    Tindakan ini <strong>tidak dapat diurungkan</strong>.
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                    <i class="bi bi-x me-1"></i>Tutup
+                </button>
+                <form id="formBatalkan" method="POST" action="">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-sm" style="background:#dc2626;color:#fff;border:none">
+                        <i class="bi bi-x-circle me-1"></i>Ya, Batalkan
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
 <script>
+function konfirmasiBatal(id, jumlah, keterangan) {
+    document.getElementById('modalJumlah').textContent =
+        'Rp ' + Number(jumlah).toLocaleString('id-ID');
+    document.getElementById('modalKeterangan').textContent = keterangan || '-';
+    document.getElementById('formBatalkan').action =
+        '{{ route("kredit.destroy", ":id") }}'.replace(':id', id);
+    new bootstrap.Modal(document.getElementById('modalBatalkan')).show();
+}
+
 function hitung() {
     const selisih = parseInt(document.getElementById('calcSelisih').value) || 0;
     const bulan   = parseInt(document.getElementById('calcBulan').value) || 0;

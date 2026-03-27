@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'e-Scrido') }} — @yield('title', 'Dashboard')</title>
+    <title>{{ config('app.name', 'DKas') }} — @yield('title', 'Dashboard')</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         /* ============================================================
@@ -59,7 +59,7 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             background: var(--bg);
             color: var(--ink-soft);
             min-height: 100vh;
@@ -117,25 +117,13 @@
             transition: transform .3s cubic-bezier(.4,0,.2,1);
         }
 
-        /* Subtle line grid texture */
+        /* Subtle gradient accent top-right */
         .sidebar::before {
             content: '';
             position: absolute;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
-            background-size: 40px 40px;
-            pointer-events: none;
-        }
-
-        /* Top-right corner gradient */
-        .sidebar::after {
-            content: '';
-            position: absolute;
             top: 0; right: 0;
-            width: 160px; height: 160px;
-            background: linear-gradient(225deg, rgba(37,99,235,.15) 0%, transparent 60%);
+            width: 200px; height: 200px;
+            background: radial-gradient(ellipse at top right, rgba(37,99,235,.14) 0%, transparent 65%);
             pointer-events: none;
         }
 
@@ -174,7 +162,7 @@
 
         .brand-text { line-height: 1; }
         .brand-name {
-            font-family: 'Sora', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: .92rem;
             font-weight: 600;
             color: #fff;
@@ -293,7 +281,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Sora', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: .88rem;
             font-weight: 600;
             color: #fff;
@@ -485,7 +473,7 @@
             font-size: .88rem;
             font-weight: 700;
             color: var(--ink);
-            font-family: 'Sora', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
         }
 
         .card-body { padding: 1.4rem; }
@@ -525,7 +513,7 @@
         }
 
         .stat-value {
-            font-family: 'Sora', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: 1.75rem;
             font-weight: 700;
             color: var(--ink);
@@ -602,7 +590,7 @@
            BUTTONS
         ============================================================ */
         .btn {
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             font-weight: 600;
             border-radius: var(--r-md);
             transition: all .18s ease;
@@ -702,7 +690,7 @@
             font-weight: 600;
             border-radius: var(--r-sm);
             transition: all .14s;
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
         }
 
         .bulan-btn.dibayar {
@@ -746,7 +734,7 @@
         }
 
         .form-control, .form-select {
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             border: 1.5px solid var(--border);
             border-radius: var(--r-md);
             font-size: .875rem;
@@ -801,7 +789,7 @@
         ============================================================ */
         .modal-content { border: none; border-radius: var(--r-xl); box-shadow: var(--shadow-pop); }
         .modal-header { border-bottom: 1px solid var(--border); padding: 1.2rem 1.5rem; border-radius: var(--r-xl) var(--r-xl) 0 0; }
-        .modal-title { font-family: 'Sora', sans-serif; font-size: 1rem; font-weight: 700; color: var(--ink); }
+        .modal-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1rem; font-weight: 700; color: var(--ink); }
         .modal-footer { border-top: 1px solid var(--border); padding: 1rem 1.5rem; }
 
         /* ============================================================
@@ -872,7 +860,7 @@
         <div class="topbar-right">
             <span class="topbar-date-pill d-none d-sm-inline">
                 <i class="bi bi-calendar3 me-1" style="font-size:.7rem"></i>
-                {{ now()->isoFormat('D MMMM Y') }}
+                {{ now()->isoFormat('dddd, D MMMM Y') }}
             </span>
             <span class="role-badge">
                 <span class="live-dot"></span>

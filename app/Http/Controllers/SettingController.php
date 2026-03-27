@@ -15,13 +15,12 @@ class SettingController extends Controller
 
         if ($userJenjang) {
             // Admin jenjang: hanya lihat/edit jenjangnya sendiri
-            $global  = Setting::global();
             $setting = Setting::forJenjang($userJenjang);
-            return view('setting.index', compact('setting', 'global', 'userJenjang'));
+            return view('setting.index', compact('setting', 'userJenjang'));
         }
 
-        // Admin yayasan: lihat semua
-        $settings    = Setting::allIndexed();  // ['global'=>..., 'TK'=>..., 'SD'=>..., 'SMP'=>...]
+        // Admin yayasan: lihat semua jenjang (TK, SD, SMP)
+        $settings    = Setting::allIndexed(); // ['TK'=>..., 'SD'=>..., 'SMP'=>...]
         $userJenjang = null;
         return view('setting.index', compact('settings', 'userJenjang'));
     }
@@ -32,7 +31,7 @@ class SettingController extends Controller
 
         // ── Validasi ─────────────────────────────────────────────────
         $rules = [
-            'jenjang'             => 'required|in:global,TK,SD,SMP',
+            'jenjang'             => 'required|in:TK,SD,SMP',
             'nama_sekolah'        => 'nullable|string|max:150',
             'nama_yayasan'        => 'nullable|string|max:150',
             'nama_kepala_sekolah' => 'nullable|string|max:100',
@@ -60,15 +59,23 @@ class SettingController extends Controller
 
         // Keamanan: admin jenjang hanya boleh update miliknya sendiri
         if ($userJenjang && $targetJenjang !== $userJenjang) {
-            abort(403, 'Anda tidak memiliki akses untuk mengubah pengaturan jenjang lain.');
+            abort(403, 'Anda tidak memiliki akses untuk mengubah data sekolah jenjang lain.');
         }
 
         // ── Ambil / buat record ──────────────────────────────────────
         $setting = Setting::firstOrCreate(['jenjang' => $targetJenjang]);
 
-        $data = $targetJenjang === 'global'
-            ? $request->only(['nama_yayasan', 'alamat', 'kota', 'telepon'])
-            : $request->only(['nama_sekolah', 'nama_kepala_sekolah', 'nip_kepala_sekolah', 'nama_admin']);
+        // Semua jenjang menyimpan data lengkapnya sendiri
+        $data = $request->only([
+            'nama_sekolah',
+            'nama_yayasan',
+            'nama_kepala_sekolah',
+            'nip_kepala_sekolah',
+            'nama_admin',
+            'alamat',
+            'kota',
+            'telepon',
+        ]);
 
         // ── Logo ──────────────────────────────────────────────────────
         if ($request->hasFile('logo')) {
@@ -92,9 +99,8 @@ class SettingController extends Controller
 
         $setting->update($data);
 
-        $label = $targetJenjang === 'global' ? 'Yayasan' : $targetJenjang;
         return redirect()
-            ->route('setting.index', $targetJenjang !== 'global' ? ['tab' => $targetJenjang] : [])
-            ->with('success', "Pengaturan {$label} berhasil disimpan.");
+            ->route('setting.index', ['tab' => $targetJenjang])
+            ->with('success', "Data Sekolah {$targetJenjang} berhasil disimpan.");
     }
 }

@@ -113,13 +113,12 @@
                 <h6 class="mb-0 fw-bold" style="color:var(--ink)">
                     <i class="bi bi-list-check me-2" style="color:var(--blue)"></i>
                     Pembayaran Belum Disetor
-                    <span class="badge-{{ $jenjang }} ms-1">{{ $jenjang }}</span>
                 </h6>
                 <div class="d-flex gap-1">
                     <button type="button" class="btn btn-sm btn-outline-primary" id="btnCeklisSemua">
                         <i class="bi bi-check-all me-1"></i>Pilih Semua
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnHapusSemua">
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnHapusSemua">
                         <i class="bi bi-x me-1"></i>Hapus Semua
                     </button>
                 </div>
