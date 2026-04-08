@@ -29,7 +29,6 @@ class Setting extends Model
     {
         return static::firstOrCreate(
             ['jenjang' => 'global'],
-            ['nama_yayasan' => '']
         );
     }
 
@@ -38,7 +37,6 @@ class Setting extends Model
     {
         return static::firstOrCreate(
             ['jenjang' => $jenjang],
-            ['nama_sekolah' => $jenjang . ' Kristen Dorkas']
         );
     }
 
@@ -60,8 +58,6 @@ class Setting extends Model
         if ($missing->isNotEmpty()) {
             $inserts = $missing->map(fn($k) => [
                 'jenjang'      => $k,
-                'nama_yayasan' => '',
-                'nama_sekolah' => $k !== 'global' ? $k . ' Kristen Dorkas' : '',
                 'created_at'   => now(),
                 'updated_at'   => now(),
             ])->values()->toArray();

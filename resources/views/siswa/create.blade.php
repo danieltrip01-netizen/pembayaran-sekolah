@@ -72,7 +72,7 @@
                                 </label>
                                 <input type="text" name="nama" value="{{ old('nama') }}"
                                     class="form-control @error('nama') is-invalid @enderror"
-                                    placeholder="Nama lengkap siswa" required autofocus>
+                                    placeholder="Nama lengkap siswa" required autofocus autocomplete="off">
                                 @error('nama')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -130,7 +130,7 @@
                                     <input type="text" name="no_hp_wali"
                                            value="{{ old('no_hp_wali') }}"
                                            class="form-control @error('no_hp_wali') is-invalid @enderror"
-                                           placeholder="08xxxxxxxxxx">
+                                           placeholder="08xxxxxxxxxx" autocomplete="off">
                                 </div>
                                 @error('no_hp_wali')
                                     <div class="invalid-feedback">{{ $message }}</div>

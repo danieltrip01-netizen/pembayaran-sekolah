@@ -16,9 +16,12 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 class LaporanExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle
 {
     private int $rowNumber = 0;
+    private bool $showMamin;
 
-    public function __construct(private readonly array $filter) {}
-
+    public function __construct(private readonly array $filter)
+    {
+        $this->showMamin = ($filter['jenjang'] ?? '') === 'TK'; // ← tambah
+    }
     public function title(): string
     {
         return 'Laporan Pembayaran';
@@ -106,61 +109,73 @@ class LaporanExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
 
     public function headings(): array
     {
-        return [
+        $cols = [
             'No',
             'Kode Bayar',
             'Tanggal',
             'ID Siswa',
             'Nama Siswa',
-            'Kelas',          // FIX: diambil dari siswaKelas → kelas
+            'Kelas',
             'Jenjang',
             'Bulan Dibayar',
             'Jumlah Bulan',
             'Nominal/Bulan',
             'Donatur',
-            'Mamin',
-            'Kredit Digunakan',
-            'Total Bayar',
-            'Petugas',
         ];
+
+        if ($this->showMamin) {
+            $cols[] = 'Mamin';
+        }
+
+        $cols[] = 'Kredit Digunakan';
+        $cols[] = 'Total Bayar';
+
+        return $cols;
     }
+
 
     public function map($row): array
     {
         $this->rowNumber++;
-
         $tahunId = $this->filter['tahun_pelajaran_id'] ?? null;
 
-        // Ambil kelas sesuai tahun pelajaran yang dipilih
         $namaKelas = $row->siswa
             ?->siswaKelas
             ->firstWhere('tahun_pelajaran_id', $tahunId)
             ?->kelas
             ?->nama ?? '-';
 
-        return [
+        $data = [
             $this->rowNumber,
             $row->kode_bayar,
             $row->tanggal_bayar->format('d/m/Y'),
             $row->siswa->id_siswa ?? '-',
             $row->siswa->nama     ?? '-',
-            $namaKelas,                             // ← pakai yang sudah difilter
+            $namaKelas,
             $row->siswa->jenjang  ?? '-',
             $row->bulan_label,
             $row->jumlah_bulan,
             (int) $row->nominal_per_bulan,
             (int) $row->nominal_donator,
-            (int) $row->nominal_mamin,
-            (int) ($row->kredit_digunakan ?? 0),
-            (int) $row->total_bayar,
-            $row->user->name ?? '-',
         ];
+
+        if ($this->showMamin) {
+            $data[] = (int) $row->nominal_mamin;
+        }
+
+        $data[] = (int) ($row->kredit_digunakan ?? 0);
+        $data[] = (int) $row->total_bayar;
+
+        return $data;
     }
 
     public function styles(Worksheet $sheet): array
     {
-        // Format kolom J, K, L, M, N sebagai angka ribuan
-        foreach (['J', 'K', 'L', 'M', 'N'] as $col) {
+        $numCols = $this->showMamin
+            ? ['J', 'K', 'L', 'M', 'N']
+            : ['J', 'K', 'L', 'M'];
+
+        foreach ($numCols as $col) {
             $sheet->getStyle($col . '2:' . $col . $sheet->getHighestRow())
                 ->getNumberFormat()
                 ->setFormatCode('#,##0');

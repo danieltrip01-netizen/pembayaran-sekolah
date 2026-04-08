@@ -533,11 +533,6 @@
                         <span class="d-val" style="color:var(--green);">
                             Rp {{ number_format($bln['yang_dibayar'], 0, ',', '.') }}
                         </span>
-                    @else
-                        <span class="d-lbl">Estimasi Tagihan</span>
-                        <span class="d-val" style="color:var(--ink-muted);">
-                            Rp {{ number_format($totalByr, 0, ',', '.') }}
-                        </span>
                     @endif
                 </div>
 
@@ -558,7 +553,7 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
         </svg>
-        Data resmi — diperbarui otomatis
+      Diperbarui otomatis
     </div>
     <div class="footer-time">
         Dilihat pada {{ \Carbon\Carbon::now()->translatedFormat('d F Y, H:i') }} WIB

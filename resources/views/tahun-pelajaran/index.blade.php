@@ -296,7 +296,7 @@
                                value="{{ old('nama') }}"
                                class="form-control @error('nama') is-invalid @enderror"
                                placeholder="cth: 2024/2025"
-                               maxlength="50" required autofocus>
+                               maxlength="50" required autofocus autocomplete="off">
                         <div class="form-text">Format bebas, mis: <code>2024/2025</code> atau <code>TA 2024-2025</code></div>
                         @error('nama')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>

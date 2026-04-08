@@ -45,11 +45,11 @@ class SiswaTemplateExport implements
     {
         return [
             // Contoh SD
-            ['Budi Santoso',  'SD',  'I',   '081234567890', 175000, 60000, 0],
+            ['Budi Santoso',  'SD',  'I',   '', 175000, 60000, 0],
             // Contoh TK
-            ['Sari Dewi',     'TK',  'OA',  '082198765432', 200000, 0,     50000],
+            ['Sari Dewi',     'TK',  'OA',  '', 200000, 0, 5000],
             // Contoh SMP
-            ['Andi Pratama',  'SMP', 'VII', '',             350000, 75000, 0],
+            ['Andi Pratama',  'SMP', 'VII', '', 350000, 30000, 0],
         ];
     }
 
@@ -73,10 +73,6 @@ class SiswaTemplateExport implements
                     ],
                 ],
             ],
-            // Contoh baris — warna berbeda agar mudah dibaca
-            2 => ['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFFFDE7']]],
-            3 => ['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFCE4EC']]],
-            4 => ['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF3E5F5']]],
         ];
     }
 

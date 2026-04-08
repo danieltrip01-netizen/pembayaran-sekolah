@@ -21,7 +21,7 @@
             <p class="mb-0" style="color:var(--ink-muted);font-size:.85rem;">
                 <code style="font-size:.8rem;color:var(--navy);">{{ $siswa->id_siswa }}</code>
                 <span class="mx-1">—</span>
-                <span class="badge-{{ strtolower($siswa->jenjang) }}">Kelas {{ $ka->kelas->nama }}</span>
+                <span class="badge-{{ strtolower($siswa->jenjang) }}">Kelas {{ $ka?->kelas?->nama ?? '-' }}</span>
             </p>
         </div>
         <a href="{{ route('siswa.show', $siswa) }}" class="btn btn-outline-secondary btn-sm">
@@ -71,10 +71,10 @@
                                 <select name="jenjang" id="selectJenjang"
                                     class="form-select @error('jenjang') is-invalid @enderror"
                                     {{ auth()->user()->jenjang ? 'disabled' : '' }} required>
-                                    <option value="TK"
-                                        {{ old('jenjang', $siswa->jenjang) == 'TK' ? 'selected' : '' }}>TK / PAUD</option>
-                                    <option value="SD"
-                                        {{ old('jenjang', $siswa->jenjang) == 'SD' ? 'selected' : '' }}>SD</option>
+                                    <option value="TK" {{ old('jenjang', $siswa->jenjang) == 'TK' ? 'selected' : '' }}>
+                                        TK / PAUD</option>
+                                    <option value="SD" {{ old('jenjang', $siswa->jenjang) == 'SD' ? 'selected' : '' }}>
+                                        SD</option>
                                     <option value="SMP"
                                         {{ old('jenjang', $siswa->jenjang) == 'SMP' ? 'selected' : '' }}>SMP</option>
                                 </select>
@@ -111,7 +111,7 @@
                                     <input type="text" name="no_hp_wali"
                                         value="{{ old('no_hp_wali', $siswa->no_hp_wali) }}"
                                         class="form-control @error('no_hp_wali') is-invalid @enderror"
-                                        placeholder="08xxxxxxxxxx">
+                                        placeholder="08xxxxxxxxxx" autocomplete="off">
                                 </div>
                                 @error('no_hp_wali')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -291,9 +291,9 @@
                                             <span style="color:var(--ink-muted);">Donatur:</span>
                                             <strong id="prevDonatur" style="color:var(--red);">Rp 0</strong>
                                             @if (old('jenjang', $siswa->jenjang) === 'TK')
-                                            <span style="color:var(--green);">+</span>
-                                            <span style="color:var(--ink-muted);">Mamin:</span>
-                                            <strong id="prevMamin" style="color:#0369a1;">Rp 0</strong>
+                                                <span style="color:var(--green);">+</span>
+                                                <span style="color:var(--ink-muted);">Mamin:</span>
+                                                <strong id="prevMamin" style="color:#0369a1;">Rp 0</strong>
                                             @endif
                                             <span style="color:var(--ink-muted);">=</span>
                                             <span style="color:var(--ink-muted);">Tagihan/bln:</span>

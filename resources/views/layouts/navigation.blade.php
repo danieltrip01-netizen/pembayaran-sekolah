@@ -14,7 +14,7 @@
 
     {{-- Brand --}}
     <div class="sidebar-brand">
-        <img src="../img/icon-dpay.png" alt="Logo" style="height: 60px; width: auto;">
+        <img src="{{ asset('img/icon-dpay.png') }}" alt="Logo" style="height: 60px; width: auto;">
         <div class="brand-text">
             <div class="brand-name">DorkasPay</div>
             <div class="brand-tagline">Sistem Pembayaran Sekolah</div>
@@ -36,8 +36,7 @@
             <span class="nav-icon-wrap"><i class="bi bi-calendar-fill" aria-hidden="true"></i></span>
             Tahun Ajaran
         </a>
-        <a href="{{ route('setting.index') }}"
-            class="nav-link {{ request()->routeIs('setting.*') ? 'active' : '' }}">
+        <a href="{{ route('setting.index') }}" class="nav-link {{ request()->routeIs('setting.*') ? 'active' : '' }}">
             <span class="nav-icon-wrap"><i class="bi bi-building" aria-hidden="true"></i></span>
             Data Sekolah
         </a>
@@ -86,15 +85,14 @@
     <div class="sidebar-footer">
         <div class="user-card">
             <a href="{{ route('profile.edit') }}"
-               class="user-avatar text-decoration-none {{ request()->routeIs('profile.*') ? 'ring-active' : '' }}"
-               title="Lihat profil"
-               aria-label="Profil saya">
+                class="user-avatar text-decoration-none {{ request()->routeIs('profile.*') ? 'ring-active' : '' }}"
+                title="Lihat profil" aria-label="Profil saya">
                 {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
             </a>
             <div class="user-details" style="min-width:0">
                 <a href="{{ route('profile.edit') }}"
-                   class="user-name text-decoration-none {{ request()->routeIs('profile.*') ? 'text-white' : '' }}"
-                   title="Edit profil">
+                    class="user-name text-decoration-none {{ request()->routeIs('profile.*') ? 'text-white' : '' }}"
+                    title="Edit profil">
                     {{ auth()->user()->name }}
                 </a>
                 <div class="user-role-tag">{{ auth()->user()->role_label }}</div>

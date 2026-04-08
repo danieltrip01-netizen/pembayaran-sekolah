@@ -421,7 +421,7 @@
                                class="field-input @error('name') is-invalid @enderror"
                                value="{{ old('name') }}"
                                placeholder="Nama lengkap Anda"
-                               autocomplete="name"
+                               autocomplete="off"
                                required autofocus>
                     </div>
                     @error('name')
@@ -440,7 +440,7 @@
                                class="field-input @error('email') is-invalid @enderror"
                                value="{{ old('email') }}"
                                placeholder="nama@sekolah.com"
-                               autocomplete="username"
+                               autocomplete="off"
                                required>
                     </div>
                     @error('email')

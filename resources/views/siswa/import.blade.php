@@ -211,7 +211,6 @@
                                             Dari T.A. <strong>{{ $tahunSebelumnya?->nama ?? '—' }}</strong>
                                             <span class="d-block text-muted" style="font-size:.75rem;">
                                                 Data siswa tahun sebelumnya
-                                                <span class="text-danger fw-600">(tanpa siswa tingkat akhir)</span>
                                             </span>
                                         </a>
                                     </li>

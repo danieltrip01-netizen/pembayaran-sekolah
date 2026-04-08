@@ -87,9 +87,17 @@ class TahunPelajaran extends Model
 
     public static function aktif(): ?static
     {
-        return Cache::remember('tahun_pelajaran_aktif', now()->addMinutes(30), function () {
-            return static::where('is_active', true)->first();
-        });
+        if (Cache::has('tahun_pelajaran_aktif')) {
+            return Cache::get('tahun_pelajaran_aktif');
+        }
+
+        $tahun = static::where('is_active', true)->first();
+
+        if ($tahun) {
+            Cache::put('tahun_pelajaran_aktif', $tahun, now()->addMinutes(30));
+        }
+
+        return $tahun;
     }
 
     // ─── Accessors ───────────────────────────────────────────────────

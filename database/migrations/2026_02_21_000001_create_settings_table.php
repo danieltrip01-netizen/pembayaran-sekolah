@@ -31,14 +31,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Seed 4 baris default
-        $now = now();
-        DB::table('settings')->insert([
-            ['jenjang' => 'global', 'nama_yayasan' => '', 'created_at' => $now, 'updated_at' => $now],
-            ['jenjang' => 'TK',     'nama_sekolah' => 'TK Kristen Dorkas',  'created_at' => $now, 'updated_at' => $now],
-            ['jenjang' => 'SD',     'nama_sekolah' => 'SD Kristen Dorkas',  'created_at' => $now, 'updated_at' => $now],
-            ['jenjang' => 'SMP',    'nama_sekolah' => 'SMP Kristen Dorkas', 'created_at' => $now, 'updated_at' => $now],
-        ]);
     }
 
     public function down(): void

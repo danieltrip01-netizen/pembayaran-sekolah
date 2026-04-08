@@ -21,7 +21,6 @@ class DashboardController extends Controller
         // Tahun pelajaran aktif — dipakai di seluruh method ini
         $tahunPelajaran   = TahunPelajaran::aktif();
         $tahunPelajaranId = $tahunPelajaran?->id;
-
         $bulanIni = Carbon::now()->format('Y-m');
 
         // ── Siswa ─────────────────────────────────────────────────────────────

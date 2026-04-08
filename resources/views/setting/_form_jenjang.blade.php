@@ -169,7 +169,7 @@
                             </label>
                             <input type="text" name="nama_sekolah"
                                 class="form-control @error('nama_sekolah') is-invalid @enderror"
-                                value="{{ old('', $setting->nama_sekolah) }}" placeholder="">
+                                value="{{ old('', $setting->nama_sekolah) }}" placeholder="" autocomplete="off">
                             @error('nama_sekolah')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -178,7 +178,7 @@
                             <label class="form-label fw-semibold small">Nama Yayasan / Lembaga</label>
                             <input type="text" name="nama_yayasan"
                                 class="form-control @error('nama_yayasan') is-invalid @enderror"
-                                value="{{ $namaYayasanVal }}" placeholder="">
+                                value="{{ $namaYayasanVal }}" placeholder="" autocomplete="off">
                             @error('nama_yayasan')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -194,19 +194,19 @@
                             <label class="form-label fw-semibold small">Alamat</label>
                             <input type="text" name="alamat" class="form-control"
                                 value="{{ old('', $setting->alamat) }}"
-                                placeholder="">
+                                placeholder="" autocomplete="off">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold small">Kota</label>
                             <input type="text" name="kota" class="form-control"
-                                value="{{ old('', $setting->kota) }}" placeholder="">
+                                value="{{ old('', $setting->kota) }}" placeholder="" autocomplete="off">
                         </div>
                         <div class="col-md-5">
                             <label class="form-label fw-semibold small">Telepon</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-telephone"></i></span>
                                 <input type="text" name="telepon" class="form-control"
-                                    value="{{ old('', $setting->telepon) }}" placeholder="">
+                                    value="{{ old('', $setting->telepon) }}" placeholder="" autocomplete="off">
                             </div>
                         </div>
                     </div>
@@ -222,14 +222,14 @@
                                 <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
                                 <input type="text" name="nama_kepala_sekolah" class="form-control"
                                     value="{{ old('', $setting->nama_kepala_sekolah) }}"
-                                    placeholder="">
+                                    placeholder="" autocomplete="off">
                             </div>
                         </div>
                         <div class="col-md-5">
                             <label class="form-label fw-semibold small">NIP</label>
                             <input type="text" name="nip_kepala_sekolah" class="form-control"
                                 value="{{ old('', $setting->nip_kepala_sekolah) }}"
-                                placeholder="">
+                                placeholder="" autocomplete="off">
                         </div>
                     </div>
 
@@ -244,7 +244,7 @@
                                 <span class="input-group-text"><i class="bi bi-person-gear"></i></span>
                                 <input type="text" name="nama_admin" class="form-control"
                                     value="{{ old('', $setting->nama_admin) }}"
-                                    placeholder="">
+                                    placeholder="" autocomplete="off">
                             </div>
                             <div class="form-text text-muted small">
                                 Muncul di bagian tanda tangan pada dokumen cetak.
